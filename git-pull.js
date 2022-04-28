@@ -84,7 +84,7 @@ async function repositoryListing(ns, folder = '') {
     } catch (error) {
         if (folder !== '') throw error; // Propagate the error if this was a recursive call.
         ns.tprint(`WARNING: Failed to get a repository listing (GitHub API request limit of 60 reached?): ${listUrl}` +
-            `\nResponse Contents (if available): ${JSON.stringify(response ? '(N/A)')}\nError: ${String(error)}`);
+            `\nResponse Contents (if available): ${JSON.stringify(response ?? '(N/A)')}\nError: ${String(error)}`);
         // Fallback, assume the user already has a copy of all files in the repo, and use it as a directory listing
         return ns.ls('home').filter(name => options.extension.some(ext => f.endsWith(ext)) &&
             !options['omit-folder'].some(dir => name.startsWith(dir)));

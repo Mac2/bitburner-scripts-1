@@ -1,4 +1,5 @@
 import { getNsDataThroughFile, getFilePath } from './helpers.js'
+import { purchasedServersName } from 'constants.js'
 
 const spawnDelay = 50; // Delay to allow time for `installBackdoor` to start running before a background script connects back to 'home'
 
@@ -18,7 +19,7 @@ export let main = async ns => {
                 if (!servers.includes(j)) servers.push(j), routes[j] = routes[servers[i]].slice(), routes[j].push(j);
         // Filter out servers that cannot or should not be hacked / backdoored
         ns.disableLog("getServerRequiredHackingLevel");
-        let hackableServers = servers.filter(s => s != "home" && !s.includes("hacknet-") && !s.includes("daemon")) /*or whatever you name your purchased servers*/
+        let hackableServers = servers.filter(s => s != "home" && !s.includes("hacknet-") && !s.includes(purchasedServersName))
         ns.print(`${hackableServers.length} not-owned servers on the network.`);
         ns.print(`${hackableServers.filter(s => ns.hasRootAccess(s)).length} servers are currently rooted.`);
         ns.print(`${hackableServers.filter(s => myHackingLevel > ns.getServerRequiredHackingLevel(s)).length} servers are within our hack level (${myHackingLevel}).`);

@@ -1,3 +1,5 @@
+//import { purchasedServerName } from 'constants.js'
+
 let factionServers = ["CSEC", "avmnite-02h", "I.I.I.I", "run4theh111z", "w0r1d_d43m0n"];
 let css = `<style id="scanCSS">
         .w  {white-space:nowrap}
@@ -28,7 +30,7 @@ export let main = ns => {
         /* return {
             requiredHackingSkill: ns.getServerRequiredHackingLevel(x),
             hasAdminRights: ns.hasRootAccess(x),
-            purchasedByPlayer: x.includes('daemon') || x.includes('hacknet'),
+            purchasedByPlayer: x.includes(purchasedServerName) || x.includes('hacknet'),
             backdoorInstalled: true // No way of knowing without ns.getServer
         } */
     }

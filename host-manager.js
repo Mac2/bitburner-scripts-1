@@ -1,9 +1,8 @@
 import { formatMoney, formatRam, instanceCount, getNsDataThroughFile, scanAllServers, log } from './helpers.js'
-
+import { purchasedServerName } from 'constants.js'
 // The purpose of the host manager is to buy the best servers it can
 // until it thinks RAM is underutilized enough that you don't need to anymore.
 
-const purchasedServerName = "daemon"; // The name to give all purchased servers. Also used to determine which servers were purchased
 let maxPurchasableServerRamExponent; // The max server ram you can buy as an exponent (power of 2). Typically 1 petabyte (2^20), but less in some BNs 
 let maxPurchasedServers; // The max number of servers you can have in your farm. Typically 25, but can be less in some BNs
 let costByRamExponent = {}; // A dictionary of how much each server size costs, prepped in advance.
@@ -19,7 +18,7 @@ const argsSchema = [
     ['c', false], // Set to true to run continuously
     ['run-continuously', false], // Long-form alias for above flag
     ['interval', 10000], // Update interval (in milliseconds) when running continuously
-    ['min-ram-exponent', 5], // the minimum amount of ram to purchase
+    ['min-ram-exponent', 5], // the minimum amount of ram to purchase [32GB]
     ['utilization-trigger', 0.80], // the percentage utilization that will trigger an attempted purchase
     ['absolute-reserve', null], // Set to reserve a fixed amount of money. Defaults to the contents of reserve.txt on home
     ['reserve-percent', 0.9], // Set to reserve a percentage of home money

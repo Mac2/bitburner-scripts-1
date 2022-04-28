@@ -7,7 +7,7 @@ export async function main(ns) {
     ns.print("Getting server list...");
     const servers = scanAllServers(ns);
     ns.print(`Got ${servers.length} servers. Searching for contracts on each...`);
-    // Retrieve all contracts and convert them to objects with the required information to solve
+    // Retrieve all contracts and convert them to objects with the required information to solve    
     const contractsDb = servers.map(hostname => ({ hostname, contracts: ns.ls(hostname, '.cct') }))
         .filter(o => o.contracts.length > 0)
         .map(o => o.contracts.map(contract => ({ contract, hostname: o.hostname }))).flat();

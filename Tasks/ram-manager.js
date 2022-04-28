@@ -19,6 +19,7 @@ export async function main(ns) {
     let spendable = Math.min(money - reserve, money * options.budget);
     // Quickly buy as many upgrades as we can within the budget
     do {
+        //let cost = await getNsDataThroughFile(ns, `ns.getUpgradeHomeRamCost()`, '/Temp/getUpgradeHomeRamCost.txt')
         let cost = ns.getUpgradeHomeRamCost();
         let currentRam = ns.getServerMaxRam("home");
         if (cost >= Number.MAX_VALUE || currentRam == max_ram)
@@ -27,6 +28,7 @@ export async function main(ns) {
         const upgradeDesc = `home RAM from ${formatRam(currentRam)} to ${formatRam(nextRam)}`;
         if (spendable < cost)
             return ns.print(`Money we're allowed to spend (${formatMoney(spendable)}) is less than the cost (${formatMoney(cost)}) to upgrade ${upgradeDesc}`);
+        //let ret = await getNsDataThroughFile(ns, 'ns.upgradeHomeRam()', '/Temp/upgradeHomeRam.txt')
         if (!ns.upgradeHomeRam())
             return announce(ns, `ERROR: Failed to upgrade ${upgradeDesc} thinking we could afford it ` +
                 `(cost: ${formatMoney(cost)} cash: ${formatMoney(money)} budget: ${formatMoney(spendable)})`, 'error');

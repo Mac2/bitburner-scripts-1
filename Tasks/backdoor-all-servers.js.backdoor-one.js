@@ -4,6 +4,7 @@ export async function main(ns) {
     try {
         await ns.installBackdoor();
         ns.toast(`Backdoored ${target}`, 'success');
+        //if ( target == 'w0r1d_d43m0n') ns.killall('home')
     }
     catch (err) {
         ns.tprint(`Error while running backdoor (intended for ${target}): ${String(err)}`);

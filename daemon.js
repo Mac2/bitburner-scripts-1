@@ -5,6 +5,7 @@ import {
     tryGetBitNodeMultipliers_Custom, getActiveSourceFiles_Custom,
     getFnRunViaNsExec, getFnIsAliveViaNsPs, autoRetry
 } from './helpers.js'
+import { crackNames, purchasedServersName } from 'constants.js'
 
 // the purpose of the daemon is: it's our global starting point.
 // it handles several aspects of the game, primarily hacking for money.
@@ -26,8 +27,6 @@ const unadjustedGrowthRate = 1.03;
 const maxGrowthRate = 1.0035;
 // Pad weaken thread counts to account for undershooting. (Shouldn't happen. And if this is a timing issue, padding won't help)
 const weakenThreadPadding = 0; //0.01;
-// The name given to purchased servers (should match what's in host-manager.js)
-const purchasedServersName = "daemon";
 
 // The maximum current total RAM utilization before we stop attempting to schedule work for the next less profitable server. Can be used to reserve capacity.
 const maxUtilization = 0.95;
@@ -1763,7 +1762,6 @@ const hashToolDefinition = s => hashCode(s.name + (s.args?.toString() || ''));
 
 function getTool(s) { return toolsByShortName[s] || toolsByShortName[s.shortName || hashToolDefinition(s)]; }
 
-const crackNames = ["BruteSSH.exe", "FTPCrack.exe", "relaySMTP.exe", "HTTPWorm.exe", "SQLInject.exe"];
 let ownedCracks = [];
 
 function getNumPortCrackers() {
