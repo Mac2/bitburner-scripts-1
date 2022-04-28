@@ -1,2 +1,4 @@
 
 *.txt
+/Bitburner/nbproject/private/
+/nbproject/private/

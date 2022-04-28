@@ -1,7 +1,7 @@
 let options;
 const argsSchema = [
-    ['github', 'alainbryden'],
-    ['repository', 'bitburner-scripts'],
+    ['github', 'Mac2'],
+    ['repository', 'bitburner-scripts-1'],
     ['branch', 'main'],
     ['download', []], // By default, all supported files in the repository will be downloaded. Override with just a subset of files here
     ['new-file', []], // If a repository listing fails, only files returned by ns.ls() will be downloaded. You can add additional files to seek out here.
@@ -84,7 +84,7 @@ async function repositoryListing(ns, folder = '') {
     } catch (error) {
         if (folder !== '') throw error; // Propagate the error if this was a recursive call.
         ns.tprint(`WARNING: Failed to get a repository listing (GitHub API request limit of 60 reached?): ${listUrl}` +
-            `\nResponse Contents (if available): ${JSON.stringify(response ?? '(N/A)')}\nError: ${String(error)}`);
+            `\nResponse Contents (if available): ${JSON.stringify(response ? '(N/A)')}\nError: ${String(error)}`);
         // Fallback, assume the user already has a copy of all files in the repo, and use it as a directory listing
         return ns.ls('home').filter(name => options.extension.some(ext => f.endsWith(ext)) &&
             !options['omit-folder'].some(dir => name.startsWith(dir)));
