@@ -53,6 +53,12 @@ export function formatRam(num) { return `${Math.round(num).toLocaleString()} GB`
 /** Return a datatime in ISO format */
 export function formatDateTime(datetime) { return datetime.toISOString(); }
 
+/** Return milliseconds in Human-friendly Date String */
+export function formatMilliseconds(milliseconds) {     
+    const dateObject = new Date(milliseconds);
+    return dateObject.toLocaleString();
+}
+
 /** Format a duration (in milliseconds) as e.g. '1h 21m 6s' for big durations or e.g '12.5s' / '23ms' for small durations */
 export function formatDuration(duration) {
     if (duration < 1000) return `${duration.toFixed(0)}ms`

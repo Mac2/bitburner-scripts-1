@@ -1,5 +1,5 @@
 import { lsKeys } from './constants.js'
-import { getLSItem, formatMoney, formatNumberShort } from './helpers.js'
+import { getLSItem, formatMoney, formatNumberShort, formatMilliseconds } from './helpers.js'
 
 export function autocomplete(data) {
   return Object.keys(lsKeys).concat(data.servers)
@@ -36,6 +36,7 @@ export async function main(ns) {
 
   if (key == 'reserve') value = formatMoney(value)
   if (key.toLowerCase().includes('money') ) value = formatMoney(value)
+  if (key == 'working') value = formatMilliseconds(value)
   if (typeof value == 'number') value = formatNumberShort(value, 6, 3)
 
   if ( args.p || args.pretty ) {

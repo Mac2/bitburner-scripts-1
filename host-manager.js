@@ -1,5 +1,5 @@
 import { formatMoney, formatRam, instanceCount, getNsDataThroughFile, scanAllServers, log } from './helpers.js'
-import { purchasedServerName } from './constants.js'
+import { purchasedServersName } from './constants.js'
 // The purpose of the host manager is to buy the best servers it can
 // until it thinks RAM is underutilized enough that you don't need to anymore.
 
@@ -196,7 +196,7 @@ async function tryToBuyBestServerPossible(ns) {
         }
     }
 
-    let purchasedServer = await getNsDataThroughFile(ns, `ns.purchaseServer('${purchasedServerName}', ${maxRamPossibleToBuy})`, '/Temp/purchase-server.txt');
+    let purchasedServer = await getNsDataThroughFile(ns, `ns.purchaseServer('${purchasedServersName}', ${maxRamPossibleToBuy})`, '/Temp/purchase-server.txt');
     if (!purchasedServer)
         setStatus(ns, `${prefix}Could not purchase a server with ${formatRam(maxRamPossibleToBuy)} RAM for ${formatMoney(cost)} ` +
             `with a budget of ${formatMoney(spendableMoney)}. This is either a bug, or we in a SF.9`);
