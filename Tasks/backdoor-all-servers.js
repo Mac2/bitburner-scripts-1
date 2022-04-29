@@ -1,5 +1,5 @@
 import { getNsDataThroughFile, getFilePath } from './helpers.js'
-import { purchasedServersName } from 'constants.js'
+import { purchasedServersName } from './constants.js'
 
 const spawnDelay = 50; // Delay to allow time for `installBackdoor` to start running before a background script connects back to 'home'
 

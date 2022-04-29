@@ -402,3 +402,31 @@ export async function getStocksValue(ns, player = null, stockSymbols = null) {
 /** @param {NS} ns 
  * Returns a helpful error message if we forgot to pass the ns instance to a function */
 export function checkNsInstance(ns, fnName = "this function") { if (!ns.print) throw `The first argument to ${fnName} should be a 'ns' instance.`; return ns; }
+
+/**
+ * @param {string} key
+ * @return {any} The value read from localStorage
+ * @cost 0 GB
+ **/
+export function getLSItem(key) {
+  let item = localStorage.getItem(lsKeys[key.toUpperCase()])
+
+  return item ? JSON.parse(item) : undefined
+}
+
+/**
+ * @param {string} key
+ * @param {any} value
+ * @cost 0 GB
+ **/
+export function setLSItem(key, value) {
+  localStorage.setItem(lsKeys[key.toUpperCase()], JSON.stringify(value))
+}
+
+/**
+ * @param {string} key
+ * @cost 0 GB
+ **/
+export function clearLSItem(key) {
+  localStorage.removeItem(lsKeys[key.toUpperCase()])
+}

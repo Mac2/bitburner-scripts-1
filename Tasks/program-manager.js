@@ -1,4 +1,4 @@
-import { purchaseables } from 'constants.js'
+import { purchaseables } from './constants.js'
 
 /** @param {NS} ns 
  * the purpose of the program-manager is to buy all the programs

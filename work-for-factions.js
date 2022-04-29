@@ -1,6 +1,6 @@
 import {
     instanceCount, getNsDataThroughFile, getFilePath, getActiveSourceFiles, tryGetBitNodeMultipliers,
-    formatDuration, formatMoney, formatNumberShort, disableLogs, log
+    formatDuration, formatMoney, formatNumberShort, disableLogs, log, getLSItem
 } from './helpers.js'
 
 let options;
@@ -41,18 +41,19 @@ const factions = ["Illuminati", "Daedalus", "The Covenant", "ECorp", "MegaCorp",
 const cannotWorkForFactions = ["Church of the Machine God", "Bladeburners"]
 // These factions should ideally be completed in this order (TODO: Check for augmentation dependencies)
 const preferredEarlyFactionOrder = [
-    "Netburners", // Improve hash income, which is useful or critical for almost all BNs
-    "Tian Di Hui", "Aevum", // These give all the company_rep and faction_rep bonuses early game    
-    "Daedalus", // Once we have all faction_rep boosting augs, there's no reason not to work towards Daedalus as soon as it's available/feasible so we can buy Red Pill
+    "Sector-12","Tian Di Hui", "Aevum", // These give all the company_rep and faction_rep bonuses early game    
     "CyberSec", /* Quick, and NightSec aug depends on an aug from here */ "NiteSec", "Tetrads", // Cha augs to speed up earning company promotions
+    "Netburners", // Improve hash income, which is useful or critical for almost all BNs
+    "Daedalus", // Once we have all faction_rep boosting augs, there's no reason not to work towards Daedalus as soon as it's available/feasible so we can buy Red Pill    
     "Bachman & Associates", // Boost company/faction rep for future augs
+    "Chongqing", // Unique Source of big 1.4x hack exp boost (Can only join if not in e.g. Aevum as well)
     "Fulcrum Secret Technologies", // Will be removed if hack level is too low to backdoor their server
     "ECorp", // More cmp_rep augs, and some strong hack ones as well
     "BitRunners", "The Black Hand", // Fastest sources of hacking augs after the above companies
     "The Dark Army", // Unique cmp_rep aug TODO: Can it sensibly be gotten before corps? Requires 300 all combat stats.
-    "Clarke Incorporated", "OmniTek Incorporated", "NWO", // More hack augs from companies
-    "Chongqing", // Unique Source of big 1.4x hack exp boost (Can only join if not in e.g. Aevum as well)
+    "Clarke Incorporated", "OmniTek Incorporated", "NWO", // More hack augs from companies    
 ];
+
 // This is an approximate order of most useful augmentations left to offer, assuming all early-game factions have been cleaned out
 const preferredCompanyFactionOrder = [
     "Bachman & Associates", // Augs boost company_rep by 1.65, faction_rep by 1.50. Lower rep-requirements than ECorp augs, so should be a priority to speed up future resets
@@ -93,6 +94,8 @@ export function autocomplete(data, args) {
 
 // Bit of an ugly afterthought, but this is all over the place to break out of whatever we're doing and return to the main loop.
 const breakToMainLoop = () => Date.now() > mainLoopStart + checkForNewPrioritiesInterval;
+// use LocalStorage to prevent Focuswork when we are on the keyboard
+const workInteractive = () => getLSItem('working') < Date.now() - 60*60*1000;
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -107,9 +110,11 @@ export async function main(ns) {
     options = ns.flags(argsSchema);
     firstFactions = (options['first'] || []).map(f => f.replaceAll('_', ' ')); // Factions that end up in this list will be prioritized and joined regardless of their augmentations available.
     options.skip = (options.skip || []).map(f => f.replaceAll('_', ' '));
-    options['no-crime'] = options['no-crime'] || options['no-focus']; // Can't crime if we aren't allowed to steal focus
+    options['no-crime'] = options['no-crime'] || options['no-focus'] || workInteractive(); // Can't crime if we aren't allowed to steal focus    
     if (options['crime-focus'] && options['no-focus'])
         return log(ns, "ERROR: Cannot use --no-focus and --crime-focus at the same time. You need to focus to do crime!", true, 'error');
+    if (options['crime-focus'] && workInteractive())
+        return log(ns, "ERROR: Cannot use --crime-focus during interactive working session. You need to focus to do crime!", true, 'error');
     // Default desired-stats if none were specified
     if (options['desired-stats'].length == 0)
         options['desired-stats'] = options['crime-focus'] ? ['str', 'def', 'dex', 'agi', 'faction_rep', 'hacknet', 'crime'] :
@@ -171,7 +176,7 @@ async function loadStartupData(ns) {
     const installedAugmentations = await getNsDataThroughFile(ns, `ns.getOwnedAugmentations()`, '/Temp/player-augs-installed.txt');
     // Based on what augmentations we own, we can change our own behaviour (e.g. whether to allow work to steal focus)
     hasFocusPenaly = !installedAugmentations.includes("Neuroreceptor Management Implant"); // Check if we have an augmentation that lets us not have to focus at work (always nicer if we can background it)
-    shouldFocusAtWork = !options['no-focus'] && hasFocusPenaly; // Focus at work for the best rate of rep gain, unless focus activities are disabled via command line
+    shouldFocusAtWork = !options['no-focus'] && hasFocusPenaly && !workInteractive(); // Focus at work for the best rate of rep gain, unless focus activities are disabled via command line or we are working interactive
     hasSimulacrum = installedAugmentations.includes("The Blade's Simulacrum");
 
     mostExpensiveAugByFaction = Object.fromEntries(allKnownFactions.map(f => [f,
@@ -215,6 +220,7 @@ async function mainLoop(ns) {
     ns.print(`INFO: Starting main work loop with scope: ${scope}...`);
 
     // Update information that may have changed since our last loop
+    shouldFocusAtWork = !options['no-focus'] && hasFocusPenaly && !workInteractive(); // Focus at work for the best rate of rep gain, unless focus activities are disabled via command line or we are working interactive
     const player = (await getPlayerInfo(ns));
     if (player.factions.length > numJoinedFactions) { // If we've recently joined a new faction, reset our work scope
         scope = 1; // Back to basics until we've satisfied all highest-priority work
@@ -402,8 +408,10 @@ async function earnFactionInvite(ns, factionName) {
                 physicalStats.map(s => `${s.slice(0, 3)}: ${formatNumberShort(player[`${s}_mult`], 2)}/${formatNumberShort(player[`${s}_exp_mult`], 2)}`).join(", "));
         doCrime = true; // TODO: There could be more efficient ways to gain combat stats than homicide, although at least this serves future crime factions
     }
-    if (doCrime && options['no-crime'])
+    if (doCrime && options['no-crime'])        
         return ns.print(`${reasonPrefix} Doing crime to meet faction requirements is disabled. (--no-crime or --no-focus)`);
+    if (doCrime && workInteractive())
+        return ns.print(`${reasonPrefix} Doing crime to meet faction requirements is disabled. (interactive work)`);
     if (doCrime)
         workedForInvite = await crimeForKillsKarmaStats(ns, requiredKillsByFaction[factionName] || 0, requiredKarmaByFaction[factionName] || 0, requiredCombatByFaction[factionName] || 0);
 
@@ -661,7 +669,11 @@ async function daedalusSpecialCheck(ns, favorRepRequired, currentReputation) {
 }
 
 let lastFactionWorkStatus = "";
-/** @param {NS} ns 
+/** 
+ * @param {NS} ns 
+ * @param {string} factionName
+ * @param {boolean} forceUnlockDonations
+ * @param {boolean} forceBestAug
  * Checks how much reputation we need with this faction to either buy all augmentations or get 150 favour, then works to that amount.
  * */
 export async function workForSingleFaction(ns, factionName, forceUnlockDonations = false, forceBestAug = false, forceRep = undefined) {
@@ -711,6 +723,10 @@ export async function workForSingleFaction(ns, factionName, forceUnlockDonations
     let lastRepMeasurement = await getFactionReputation(ns, factionName);
     while ((currentReputation = (await getFactionReputation(ns, factionName))) < factionRepRequired) {
         if (breakToMainLoop()) return ns.print('INFO: Interrupting faction work to check on high-level priorities.');
+        if (workInteractive() && shouldFocusAtWork) {
+            ns.print('INFO: removing focus from faction work due to interactive flag');
+            shouldFocusAtWork=false;
+        }
         const factionWork = await detectBestFactionWork(ns, factionName); // Before each loop - determine what work gives the most rep/second for our current stats
         if (await getNsDataThroughFile(ns, `ns.workForFaction('${factionName}', '${factionWork}',  ${shouldFocusAtWork})`, '/Temp/work-for-faction.txt')) {
             if (shouldFocusAtWork) ns.tail(); // Force a tail window open to help the user kill this script if they accidentally closed the tail window and don't want to keep stealing focus
@@ -736,7 +752,7 @@ export async function workForSingleFaction(ns, factionName, forceUnlockDonations
             ns.print((lastFactionWorkStatus = status) + ` Currently at ${Math.round(currentReputation).toLocaleString()}, earning ${formatNumberShort(repGainRatePerMs * 1000)} rep/sec. ` +
                 (hasFocusPenaly && !shouldFocusAtWork ? 'after 20% non-focus Penalty ' : '') + `(ETA: ${formatDuration(eta_milliseconds)})`);
         }
-        await tryBuyReputation(ns);
+        await tryBuyReputation(ns);        
         await ns.sleep(restartWorkInteval);
         if (!forceBestAug && !forceRep) { // Detect our rep requirement decreasing (e.g. if we exported for our daily +1 faction rep)
             let currentFavor = await getCurrentFactionFavour(ns, factionName);
@@ -779,7 +795,8 @@ async function detectBestFactionWork(ns, factionName) {
 
 /** @param {NS} ns 
  *  @param {Array<string>} megacorpFactionsInPreferredOrder - The list of all corporate factions to work for, sorted in the order they should be worked for
- *  @param {Array<string>} megacorpFactionsInPreferredOrder - The list of all corporate factions, sorted in the order they should be worked for
+ *  @param {Boolean} alsoWorkForCompanyFactions - Work for the company faction in this cycle
+ *  @param {Boolean} oneCompanyFactionAtATime - Work for the faction immediately after earning the invite
  * */
 export async function workForAllMegacorps(ns, megacorpFactionsInPreferredOrder, alsoWorkForCompanyFactions, oneCompanyFactionAtATime) {
     let player = (await getPlayerInfo(ns));
@@ -789,7 +806,7 @@ export async function workForAllMegacorps(ns, megacorpFactionsInPreferredOrder, 
     if (joinedCompanyFactions.length > 0)
         ns.print(`${joinedCompanyFactions.length} companies' factions have already been joined: ${joinedCompanyFactions.join(", ")}`)
     let doFactionWork = alsoWorkForCompanyFactions && oneCompanyFactionAtATime;
-    // Earn each obtainabl megacorp faction invite, and optionally also grind faction rep
+    // Earn each obtainable megacorp faction invite, and optionally also grind faction rep
     let earnedAnyInvite = false;
     for (const factionName of megacorpFactionsInPreferredOrder) {
         const earnedInvite = await workForMegacorpFactionInvite(ns, factionName, doFactionWork);
@@ -844,6 +861,10 @@ export async function workForMegacorpFactionInvite(ns, factionName, waitForInvit
     let studying = false, working = false, backdoored = false;
     while (((currentReputation = (await getCompanyReputation(ns, companyName))) < repRequiredForFaction) && !player.factions.includes(factionName)) {
         if (breakToMainLoop()) return ns.print('INFO: Interrupting corporation work to check on high-level priorities.');
+        if (workInteractive() && shouldFocusAtWork) {
+            ns.print('INFO: removing focus from corporation work due to to interactive flag');
+            shouldFocusAtWork=false;
+        }
         player = (await getPlayerInfo(ns));
         // Determine the next promotion we're striving for (the sooner we get promoted, the faster we can earn company rep)
         const getTier = job => Math.min(job.reqRep.filter(r => r <= currentReputation).length, job.reqHack.filter(h => h <= player.hacking).length, job.reqCha.filter(c => c <= player.charisma).length) - 1;
