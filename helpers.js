@@ -1,4 +1,4 @@
-import { lsKeys } from "./constants.js"
+import { lsKeys } from './constants.js'
 
 /**
  * Return a formatted representation of the monetary amount using scale symbols (e.g. $6.50M)
