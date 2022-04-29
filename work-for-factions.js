@@ -95,7 +95,7 @@ export function autocomplete(data, args) {
 // Bit of an ugly afterthought, but this is all over the place to break out of whatever we're doing and return to the main loop.
 const breakToMainLoop = () => Date.now() > mainLoopStart + checkForNewPrioritiesInterval;
 // use LocalStorage to prevent Focuswork when we are on the keyboard
-const workInteractive = () => getLSItem('working') < Date.now() - 60*60*1000;
+const workInteractive = () => getLSItem('working') > Date.now() - 60*60*1000;
 
 /** @param {NS} ns */
 export async function main(ns) {

@@ -245,7 +245,7 @@ export async function main(ns) {
             name: "work-for-factions.js", args: ['--fast-crimes-only'],  // Singularity script to manage how we use our "focus" work.
             shouldRun: () => 4 in dictSourceFiles 
                     && (ns.getServerMaxRam("home") >= 128 / (2 ** dictSourceFiles[4])) // Higher SF4 levels result in lower RAM requirements
-                    && (getLSItem('working') < Date.now() - 60*60*1000 ) // Only start, if we are not working interactive
+                    && (!getLSItem('working') || getLSItem('working') < Date.now() - 60*60*1000 ) // Only start, if we are not working interactive (at least in the last hour)
         },
         { name: "bladeburner.js", tail: openTailWindows, shouldRun: () => 7 in dictSourceFiles && playerStats.bitNodeN != 8 }, // Script to create manage bladeburner for us
     ];
