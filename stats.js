@@ -1,4 +1,4 @@
-import { log, formatNumberShort, formatMoney, instanceCount, getNsDataThroughFile, getActiveSourceFiles, disableLogs, getStocksValue } from './helpers.js'
+import { log, formatNumberShort, formatMoney, instanceCount, getNsDataThroughFile, getActiveSourceFiles, disableLogs, getStocksValue, getLSItem } from './helpers.js'
 
 const argsSchema = [
     ['hide-stocks', false],
@@ -24,13 +24,17 @@ export async function main(ns) {
     disableLogs(ns, ['sleep']);
 
     // Logic for adding a single custom HUD entry
-    const newline = (txt, tt = "") => { let p = doc.createElement("p"); p.appendChild(doc.createTextNode(txt)); p.style = "margin: 0"; p.title = tt; return p; };
+    const newline = (txt, tt = "", style = "margin: 0") => { let p = doc.createElement("p"); p.appendChild(doc.createTextNode(txt)); p.style = style; p.title = tt; return p; };
     const hudData = [];
     const addHud = (...args) => hudData.push(args);
 
     // Main stats update loop
     while (true) {
         try {
+            // 
+            if (!getLSItem('working') || getLSItem('working') < Date.now() - 60*60*1000 ) {
+                addHud("WorkMode", "interactive","","margin: 0;color: red;");
+            }
             // Show what bitNode we're currently playing in
             addHud("BitNode", `${bitNode}.${1 + (dictSourceFiles[bitNode] || 0)}`, "Detected as being one more than your current owned SF level.");
 
@@ -110,8 +114,8 @@ export async function main(ns) {
             hook1.innerHTML = hook0.innerHTML = "";
             // Create new HUD elements with info collected above.
             for (const hudRow of hudData) {
-                const [header, formattedValue, toolTip] = hudRow;
-                hook0.appendChild(newline(header, toolTip));
+                const [header, formattedValue, toolTip, style] = hudRow;
+                hook0.appendChild(newline(header, toolTip, style));
                 hook1.appendChild(newline(formattedValue, toolTip));
             }
             hudData.length = 0; // Clear the hud data for the next iteration
