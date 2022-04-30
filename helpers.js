@@ -440,20 +440,28 @@ export function clearLSItem(key) {
 }
 
 // Returns the amount of money we should currently be reserving. Dynamically adapts to save money for a couple of big purchases on the horizon
-export function reservedMoney(ns) {
+export async function reservedMoney(ns) {
     disableLogs(ns, ['getServerMoneyAvailable']);
     let shouldReserve = Number(ns.read("reserve.txt") || 0);
     let playerMoney = ns.getServerMoneyAvailable("home");
+    let playerStats = await getNsDataThroughFile(ns, `ns.getPlayer()`, '/Temp/player-info.txt');
     for ( const file of purchaseables ) {
         if (!ns.fileExists(file.name, "home") && playerMoney > file.cost * 0.8) {
           return file.cost + shouldReserve;     // Start saving missing 20% for the next File
         }
     }
 
-    if (bitnodeMults) {
-        const fourSigmaCost = (bitnodeMults.FourSigmaMarketDataApiCost * 25000000000);
-        if (!playerStats.has4SDataTixApi && playerMoney >= fourSigmaCost / 2)
-            shouldReserve += fourSigmaCost; // Start saving if we're half-way to buying 4S market access
-    }
+    let bitnodeMults = (await tryGetBitNodeMultipliers_Custom(ns, getNsDataThroughFile)) || {
+        // prior to SF-5, bitnodeMults stays null and these mults are set to 1.
+        ServerGrowthRate: 1,
+        ServerWeakenRate: 1,
+        FourSigmaMarketDataApiCost: 1,
+        ScriptHackMoneyGain: 1
+    };
+    
+    const fourSigmaCost = (bitnodeMults.FourSigmaMarketDataApiCost * 25000000000);
+    if (!playerStats.has4SDataTixApi && playerMoney >= fourSigmaCost / 2)
+        shouldReserve += fourSigmaCost; // Start saving if we're half-way to buying 4S market access
+
     return shouldReserve;
 }

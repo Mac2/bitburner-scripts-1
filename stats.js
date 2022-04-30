@@ -61,7 +61,7 @@ export async function main(ns) {
             addHud("ScrExp", formatNumberShort(ns.getScriptExpGain(), 3, 2) + '/sec', "Total 'instantenous' hack experience per second being earned across all scripts running on all servers.");
 
             // Show reserved money
-            const reserve = reservedMoney(ns);
+            const reserve = await reservedMoney(ns);
             if (reserve > 0) // Bitburner bug: Trace amounts of share power sometimes left over after we stop sharing
                 addHud("Reserve", formatNumberShort(reserve, 3, 2), "Most scripts will leave this much money unspent. Remove with `run reserve.js 0`");
 
@@ -115,8 +115,8 @@ export async function main(ns) {
             // Create new HUD elements with info collected above.
             for (const hudRow of hudData) {
                 const [header, formattedValue, toolTip, style] = hudRow;
-                hook0.appendChild(newline(header, toolTip, style));
-                hook1.appendChild(newline(formattedValue, toolTip));
+                hook0.appendChild(newline(header, toolTip));
+                hook1.appendChild(newline(formattedValue, toolTip, style));
             }
             hudData.length = 0; // Clear the hud data for the next iteration
 

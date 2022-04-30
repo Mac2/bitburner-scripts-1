@@ -14,7 +14,7 @@ export function autocomplete(data, _) {
 /** @param {NS} ns **/
 export async function main(ns) {
     const options = ns.flags(argsSchema);
-    const reserve = (options['reserve'] != null ? options['reserve'] : reservedMoney(ns));
+    const reserve = (options['reserve'] != null ? options['reserve'] : await reservedMoney(ns));
     const money = ns.getServerMoneyAvailable("home");
     let spendable = Math.min(money - reserve, money * options.budget);
     // Quickly buy as many upgrades as we can within the budget

@@ -80,7 +80,7 @@ export async function main(ns) {
     if (!keepRunning)
         log(ns, `host-manager will run once. Run with argument "-c" to run continuously.`)
     do {
-        absReservedMoney = options['absolute-reserve'] != null ? options['absolute-reserve'] : reservedMoney(ns);
+        absReservedMoney = options['absolute-reserve'] != null ? options['absolute-reserve'] : await reservedMoney(ns);
         await tryToBuyBestServerPossible(ns);
         if (keepRunning)
             await ns.sleep(options['interval']);

@@ -245,7 +245,7 @@ export async function main(ns) {
     asynchronousHelpers.forEach(helper => helper.isLaunched = false);
     asynchronousHelpers.forEach(helper => helper.requiredServer = "home"); // All helpers should be launched at home since they use tempory scripts, and we only reserve ram on home
     // These scripts are spawned periodically (at some interval) to do their checks, with an optional condition that limits when they should be spawned
-    let shouldUpgradeHacknet = () => (whichServerIsRunning(ns, "hacknet-upgrade-manager.js", false) === null) && reservedMoney(ns) < ns.getServerMoneyAvailable("home") && ns.getServerMaxRam("home") >= 32;
+    let shouldUpgradeHacknet = async () => (whichServerIsRunning(ns, "hacknet-upgrade-manager.js", false) === null) && await reservedMoney(ns) < ns.getServerMoneyAvailable("home") && ns.getServerMaxRam("home") >= 32;
     // In BN8 (stocks-only bn) and others with hack income disabled, don't waste money on improving hacking infrastructure unless we have plenty of money to spare
     let shouldImproveHacking = () => bitnodeMults.ScriptHackMoneyGain != 0 && playerStats.bitNodeN != 8 || ns.getServerMoneyAvailable("home") > 1e12;
     // Note: Periodic script are generally run every 30 seconds, but intervals are spaced out to ensure they aren't all bursting into temporary RAM at the same time.
@@ -255,12 +255,12 @@ export async function main(ns) {
         { interval: 26000, name: "/Tasks/program-manager.js", shouldRun: () => 4 in dictSourceFiles && getNumPortCrackers() != 5 && (getNumPortCrackers() < 3 || shouldImproveHacking()) },
         { interval: 27000, name: "/Tasks/contractor.js", shouldRun: () => ns.getServerMaxRam("home") >= 32, requiredServer: "home" }, // Periodically look for coding contracts that need solving
         // Buy every hacknet upgrade with up to 4h payoff if it is less than 10% of our current money or 8h if it is less than 1% of our current money.
-        { interval: 28000, name: "hacknet-upgrade-manager.js", shouldRun: shouldUpgradeHacknet, args: () => ["-c", "--max-payoff-time", "4h", "--max-spend", ns.getServerMoneyAvailable("home") * 0.1] },
-        { interval: 28500, name: "hacknet-upgrade-manager.js", shouldRun: shouldUpgradeHacknet, args: () => ["-c", "--max-payoff-time", "8h", "--max-spend", ns.getServerMoneyAvailable("home") * 0.01] },
+        { interval: 28000, name: "hacknet-upgrade-manager.js", shouldRun: await shouldUpgradeHacknet, args: () => ["-c", "--max-payoff-time", "4h", "--max-spend", ns.getServerMoneyAvailable("home") * 0.1] },
+        { interval: 28500, name: "hacknet-upgrade-manager.js", shouldRun: await shouldUpgradeHacknet, args: () => ["-c", "--max-payoff-time", "8h", "--max-spend", ns.getServerMoneyAvailable("home") * 0.01] },
         // Buy upgrades regardless of payoff if they cost less than 0.1% of our money
-        { interval: 29000, name: "hacknet-upgrade-manager.js", shouldRun: shouldUpgradeHacknet, args: () => ["-c", "--max-payoff-time", "1E100h", "--max-spend", ns.getServerMoneyAvailable("home") * 0.001] },
+        { interval: 29000, name: "hacknet-upgrade-manager.js", shouldRun: await shouldUpgradeHacknet, args: () => ["-c", "--max-payoff-time", "1E100h", "--max-spend", ns.getServerMoneyAvailable("home") * 0.001] },
         {
-            interval: 30000, name: "/Tasks/ram-manager.js", args: () => ['--budget', '0.5', '--reserve', reservedMoney(ns)], // Spend about 50% of un-reserved cash on home RAM upgrades (permanent) when they become available
+            interval: 30000, name: "/Tasks/ram-manager.js", args: () => ['--budget', '0.5'], // Spend about 50% of un-reserved cash on home RAM upgrades (permanent) when they become available
             shouldRun: () => 4 in dictSourceFiles && shouldImproveHacking() // Only trigger if hack income is important
         },
         {   // Periodically check for new faction invites and join if deemed useful to be in that faction. Also determines how many augs we could afford if we installed right now
@@ -273,7 +273,7 @@ export async function main(ns) {
             interval: 32000, name: "host-manager.js", requiredServer: "home",
             // Funky heuristic warning: I find that new players with fewer SF levels under their belt are obsessed with hack income from servers,
             // but established players end up finding auto-purchased hosts annoying - so now the % of money we spend shrinks as SF levels grow.
-            args: () => ['--reserve-percent', Math.min(0.9, 0.1 * Object.values(dictSourceFiles).reduce((t, v) => t + v, 0)), '--absolute-reserve', reservedMoney(ns), '--utilization-trigger', '0'],
+            args: () => ['--reserve-percent', Math.min(0.9, 0.1 * Object.values(dictSourceFiles).reduce((t, v) => t + v, 0)), '--utilization-trigger', '0'],
             shouldRun: () => {
                 if (!shouldImproveHacking()) return false; // Skip if hack income is not important in this BN or at this time      
                 if (ns.getServerMaxRam("home") <= 32) return false;
@@ -380,7 +380,7 @@ async function runStartupScripts(ns) {
     let launched = 0;
     for (const helper of asynchronousHelpers) {
         if (launched > 0) await ns.asleep(200); // Sleep a short while between each script being launched, so they aren't all fighting for temp RAM at the same time.
-        if (!helper.isLaunched && (helper.shouldRun === undefined || helper.shouldRun())) {
+        if (!helper.isLaunched && (helper.shouldRun === undefined || await helper.shouldRun())) {
             helper.isLaunched = await tryRunTool(ns, getTool(helper))
             if (helper.isLaunched) launched++;
         }
@@ -396,7 +396,7 @@ async function runPeriodicScripts(ns) {
     for (const task of periodicScripts) {
         if (launched > 0) await ns.asleep(200); // Sleep a short while between each script being launched, so they aren't all fighting for temp RAM at the same time.
         let tool = getTool(task);
-        if ((Date.now() - (task.lastRun || 0) >= task.interval) && (task.shouldRun === undefined || task.shouldRun())) {
+        if ((Date.now() - (task.lastRun || 0) >= task.interval) && (task.shouldRun === undefined || await task.shouldRun())) {
             task.lastRun = Date.now()
             if (await tryRunTool(ns, tool))
                 launched++;
@@ -713,8 +713,10 @@ async function doTargetingLoop(ns) {
                     `for ${lowUtilizationIterations || highUtilizationIterations} its, Max Targets: ${maxTargets}, Loop Took: ${Date.now() - start}ms`);
                 lastUpdateTime = Date.now();
             }
-            //log(ns, 'Prepping: ' + prepping.map(s => s.name).join(', '))
-            //log(ns, 'targeting: ' + targeting.map(s => s.name).join(', '))
+            if (verbose) {
+                log(ns, 'Prepping: ' + prepping.map(s => s.name).join(', '))
+                log(ns, 'targeting: ' + targeting.map(s => s.name).join(', '))
+            }
         } catch (err) {
             // Sometimes a script is shut down by throwing an object contianing internal game script info. Detect this and exit silently
             if (err?.env?.stopFlag) return;

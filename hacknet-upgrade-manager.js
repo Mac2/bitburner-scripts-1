@@ -38,7 +38,7 @@ export async function main(ns) {
         `. Current fleet: ${ns.hacknet.numNodes()} nodes...`);
     do {
         try {
-            const moneySpent = upgradeHacknet(ns, maxSpend, maxPayoffTime, options);
+            const moneySpent = await upgradeHacknet(ns, maxSpend, maxPayoffTime, options);
             // Using this method, we cannot know for sure that we don't have hacknet servers until we have purchased one
             if (haveHacknetServers && ns.hacknet.numNodes() > 0 && ns.hacknet.hashCapacity() == 0)
                 haveHacknetServers = false;
@@ -61,7 +61,7 @@ function log(ns, logMessage) { if (logMessage != lastUpgradeLog) ns.print(lastUp
 
 // Will buy the most effective hacknet upgrade, so long as it will pay for itself in the next {payoffTimeSeconds} seconds.
 /** @param {NS} ns **/
-export function upgradeHacknet(ns, maxSpend, maxPayoffTimeSeconds = 3600 /* 3600 sec == 1 hour */, options) {
+export async function upgradeHacknet(ns, maxSpend, maxPayoffTimeSeconds = 3600 /* 3600 sec == 1 hour */, options) {
     const currentHacknetMult = ns.getPlayer().hacknet_node_money_mult;
     // Get the lowest cache level, we do not consider upgrading the cache level of servers above this until all have the same cache level
     const minCacheLevel = [...Array(ns.hacknet.numNodes()).keys()].reduce((min, i) => Math.min(min, ns.hacknet.getNodeStats(i).cache), Number.MAX_VALUE);
@@ -133,7 +133,7 @@ export function upgradeHacknet(ns, maxSpend, maxPayoffTimeSeconds = 3600 /* 3600
         log(ns, `The next best purchase would be ${strPurchase}, but the ${strPayoff} is worse than the limit (${formatDuration(1000 * maxPayoffTimeSeconds)})`);
         return false; // Shut-down. As long as maxPayoffTimeSeconds doesn't change, we will never purchase another upgrade
     }
-    const reserve = (options['reserve'] != null ? options['reserve'] : reservedMoney(ns));
+    const reserve = (options['reserve'] != null ? options['reserve'] : await reservedMoney(ns));
     const playerMoney = ns.getPlayer().money;
     if (cost > playerMoney - reserve) {
         log(ns, `The next best purchase would be ${strPurchase}, but the cost exceeds the our ` +
