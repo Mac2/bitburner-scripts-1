@@ -54,7 +54,15 @@ export let main = ns => {
     let tcommand = x => {
         tIn.value = x;
         tEv.onChange({ target: tIn });
-        tEv.onKeyDown({ keyCode: "13", preventDefault: () => 0 });
+        tEv.onKeyDown({ keyCode: 13, preventDefault: () => null });        
+        tIn.dispatchEvent(new KeyboardEvent("keydown", {
+            code: 'Enter',
+            key: 'Enter',
+            charCode: 13,
+            keyCode: 13,
+            view: window,
+            bubbles: true
+        }));                  
     };
 
     let addSc = (x = s[0], p1 = ["\n"], o = p1.join("") + fName(x)) => {
