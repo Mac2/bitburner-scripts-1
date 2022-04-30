@@ -1,4 +1,4 @@
-import { lsKeys } from './constants.js'
+import { lsKeys, purchaseables } from './constants.js'
 
 /**
  * Return a formatted representation of the monetary amount using scale symbols (e.g. $6.50M)
@@ -439,8 +439,11 @@ export function clearLSItem(key) {
   localStorage.removeItem(lsKeys[key.toUpperCase()])
 }
 
+export function doesFileExist(filename, hostname = undefined) { return _ns.fileExists(filename, hostname); }
+
 // Returns the amount of money we should currently be reserving. Dynamically adapts to save money for a couple of big purchases on the horizon
-function reservedMoney(ns) {
+export function reservedMoney(ns) {
+    disableLogs(ns, ['getServerMoneyAvailable']);
     let shouldReserve = Number(ns.read("reserve.txt") || 0);
     let playerMoney = ns.getServerMoneyAvailable("home");
     for ( const file of purchaseables ) {

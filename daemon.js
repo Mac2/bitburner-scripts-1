@@ -4,9 +4,9 @@ import {
     getNsDataThroughFile_Custom, runCommand_Custom, waitForProcessToComplete_Custom,
     tryGetBitNodeMultipliers_Custom, getActiveSourceFiles_Custom,
     getFnRunViaNsExec, getFnIsAliveViaNsPs, autoRetry, getLSItem,
-    reservedMoney
+    reservedMoney, doesFileExist
 } from './helpers.js'
-import { crackNames, purchasedServersName, purchaseables } from './constants.js'
+import { crackNames, purchasedServersName } from './constants.js'
 
 // the purpose of the daemon is: it's our global starting point.
 // it handles several aspects of the game, primarily hacking for money.
@@ -98,7 +98,6 @@ function playerHackSkill() { return playerStats.hacking; }
 
 function getPlayerHackingGrowMulti() { return playerStats.hacking_grow_mult };
 //let playerMoney = () => playerStats.money;
-function doesFileExist(filename, hostname = undefined) { return _ns.fileExists(filename, hostname); }
 
 let psCache = [];
 /** @param {NS} ns 
