@@ -1,6 +1,6 @@
 import { instanceCount, getActiveSourceFiles, getNsDataThroughFile, runCommand, formatMoney, formatDuration, disableLogs, log } from './helpers.js'
 
-const interval = 5000; // Uodate (tick) this often
+const interval = 5000; // Update (tick) this often
 const minTaskWorkTime = 29000; // Sleeves assigned a new task should stick to it for at least this many milliseconds
 const trainingReserveFile = '/Temp/sleeves-training-reserve.txt';
 const works = ['security', 'field', 'hacking']; // When doing faction work, we prioritize physical work since sleeves tend towards having those stats be highest

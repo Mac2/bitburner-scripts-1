@@ -17,7 +17,7 @@ export function autocomplete(data, args) {
         return data.scripts;
     return [];
 }
-
+   
 /** @param {NS} ns 
  * Will try to download a fresh version of every file on the current server.
  * You are responsible for:

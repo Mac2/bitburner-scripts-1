@@ -5,7 +5,7 @@ import {
     tryGetBitNodeMultipliers_Custom, getActiveSourceFiles_Custom,
     getFnRunViaNsExec, getFnIsAliveViaNsPs, autoRetry, getLSItem
 } from './helpers.js'
-import { crackNames, purchasedServersName } from './constants.js'
+import { crackNames, purchasedServersName, purchaseables } from './constants.js'
 
 // the purpose of the daemon is: it's our global starting point.
 // it handles several aspects of the game, primarily hacking for money.
@@ -111,8 +111,12 @@ function ps(ns, server, canUseCache = true) {
 function reservedMoney(ns) {
     let shouldReserve = Number(ns.read("reserve.txt") || 0);
     let playerMoney = ns.getServerMoneyAvailable("home");
-    if (!doesFileExist("SQLInject.exe", "home") && playerMoney > 200e6)
-        shouldReserve += 250e6; // Start saving at 200m of the 250m required for SQLInject
+    for ( const file of purchaseables ) {
+        if (!doesFileExist(file.name, "home") && playerMoney > file.cost * 0.8) {
+          return file.cost + shouldReserve;     // Start saving missing 20% for the next File
+        }
+    }
+
     const fourSigmaCost = (bitnodeMults.FourSigmaMarketDataApiCost * 25000000000);
     if (!playerStats.has4SDataTixApi && playerMoney >= fourSigmaCost / 2)
         shouldReserve += fourSigmaCost; // Start saving if we're half-way to buying 4S market access
@@ -236,7 +240,7 @@ export async function main(ns) {
     const openTailWindows = !options['no-tail-windows'];
     asynchronousHelpers = [
         { name: "stats.js", shouldRun: () => ns.getServerMaxRam("home") >= 64 /* Don't waste precious RAM */ }, // Adds stats not usually in the HUD
-        { name: "stockmaster.js", args: openTailWindows ? ["--show-market-summary"] : [], tail: openTailWindows }, // Start our stockmaster
+        { name: "stockmaster.js", args: openTailWindows ? ["--show-market-summary","--reserve",reservedMoney(ns)] : ["--reserve",reservedMoney(ns)], tail: openTailWindows }, // Start our stockmaster
         { name: "hacknet-upgrade-manager.js", args: ["-c", "--max-payoff-time", "1h"] }, // Kickstart hash income by buying everything with up to 1h payoff time immediately
         { name: "spend-hacknet-hashes.js", args: [], shouldRun: () => 9 in dictSourceFiles }, // Always have this running to make sure hashes aren't wasted
         { name: "sleeve.js", tail: openTailWindows, shouldRun: () => 10 in dictSourceFiles }, // Script to create manage our sleeves for us
@@ -703,7 +707,7 @@ async function doTargetingLoop(ns) {
             // Log some status updates
             let keyUpdates = `Of ${serverListByFreeRam.length} total servers:\n > ${noMoney.length} were ignored (owned or no money)`;
             if (notRooted.length > 0)
-                keyUpdates += `, ${notRooted.length} are not rooted (missing ${crackNames.filter(c => !ownedCracks.includes(c)).join(', ')})`;
+                keyUpdates += `, ${notRooted.length} are not rooted (missing ${crackNames.filter(c => !ownedCracks.includes(c.name)).join(', ')})`;
             if (cantHack.length > 0)
                 keyUpdates += `\n > ${cantHack.length} cannot be hacked (${cantHackButPrepping.length} prepping, ` +
                     `${cantHackButPrepped.length} prepped, next unlock at Hack ${lowestUnhackable})`;
@@ -1769,8 +1773,8 @@ let ownedCracks = [];
 function getNumPortCrackers() {
     // Once we own a port cracker, assume it won't be deleted.
     if (ownedCracks.length == 5) return 5;
-    for (const crack of crackNames.filter(c => !ownedCracks.includes(c)))
-        if (doesFileExist(crack, 'home'))
-            ownedCracks.push(crack);
+    for (const crack of crackNames.filter(c => !ownedCracks.includes(c.name)))
+        if (doesFileExist(crack.name, 'home'))
+            ownedCracks.push(crack.name);
     return ownedCracks.length;
 }

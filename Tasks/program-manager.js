@@ -15,8 +15,8 @@ export async function main(ns) {
     let foundMissingProgram = false;
     do {        
         for (const prog of purchaseables) {
-            if (!ns.fileExists(prog, "home") && ns.purchaseProgram(prog))
-                ns.toast(`Purchased ${prog}`, 'success');
+            if (!ns.fileExists(prog.name, "home") && ns.purchaseProgram(prog.name))
+                ns.toast(`Purchased ${prog.name}`, 'success');
             else if (keepRunning)
                 foundMissingProgram = true;
         }
