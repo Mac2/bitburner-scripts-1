@@ -4,7 +4,7 @@ import {
     getNsDataThroughFile_Custom, runCommand_Custom, waitForProcessToComplete_Custom,
     tryGetBitNodeMultipliers_Custom, getActiveSourceFiles_Custom,
     getFnRunViaNsExec, getFnIsAliveViaNsPs, autoRetry, getLSItem,
-    reservedMoney, doesFileExist
+    reservedMoney
 } from './helpers.js'
 import { crackNames, purchasedServersName } from './constants.js'
 
@@ -98,6 +98,8 @@ function playerHackSkill() { return playerStats.hacking; }
 
 function getPlayerHackingGrowMulti() { return playerStats.hacking_grow_mult };
 //let playerMoney = () => playerStats.money;
+
+function doesFileExist(filename, hostname = undefined) { return _ns.fileExists(filename, hostname); }
 
 let psCache = [];
 /** @param {NS} ns 
