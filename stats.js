@@ -32,7 +32,7 @@ export async function main(ns) {
     while (true) {
         try {
             // 
-            if (!getLSItem('working') || getLSItem('working') < Date.now() - 60*60*1000 ) {
+            if (getLSItem('working') && getLSItem('working') > Date.now() - 60*60*1000 ) {
                 addHud("WorkMode", "interactive","","margin: 0;color: red;");
             }
             // Show what bitNode we're currently playing in

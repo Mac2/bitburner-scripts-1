@@ -712,11 +712,9 @@ async function doTargetingLoop(ns) {
                     '\n > RAM Utilization: ' + formatRam(Math.ceil(network.totalUsedRam)) + ' of ' + formatRam(network.totalMaxRam) + ' (' + (utilizationPercent * 100).toFixed(1) + '%) ' +
                     `for ${lowUtilizationIterations || highUtilizationIterations} its, Max Targets: ${maxTargets}, Loop Took: ${Date.now() - start}ms`);
                 lastUpdateTime = Date.now();
-            }
-            if (verbose) {
-                log(ns, 'Prepping: ' + prepping.map(s => s.name).join(', '))
-                log(ns, 'targeting: ' + targeting.map(s => s.name).join(', '))
-            }
+            }            
+            //log(ns, 'Prepping: ' + prepping.map(s => s.name).join(', '))
+            //log(ns, 'targeting: ' + targeting.map(s => s.name).join(', '))            
         } catch (err) {
             // Sometimes a script is shut down by throwing an object contianing internal game script info. Detect this and exit silently
             if (err?.env?.stopFlag) return;
