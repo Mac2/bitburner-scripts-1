@@ -1,4 +1,4 @@
-import { formatMoney, formatRam } from './helpers.js'
+import { formatMoney, formatRam, reservedMoney } from './helpers.js'
 
 const max_ram = 2 ** 30;
 const argsSchema = [
@@ -14,7 +14,7 @@ export function autocomplete(data, _) {
 /** @param {NS} ns **/
 export async function main(ns) {
     const options = ns.flags(argsSchema);
-    const reserve = (options['reserve'] != null ? options['reserve'] : Number(ns.read("reserve.txt") || 0));
+    const reserve = (options['reserve'] != null ? options['reserve'] : reservedMoney(ns));
     const money = ns.getServerMoneyAvailable("home");
     let spendable = Math.min(money - reserve, money * options.budget);
     // Quickly buy as many upgrades as we can within the budget

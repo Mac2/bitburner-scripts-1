@@ -1,4 +1,4 @@
-import { disableLogs, formatDuration, formatMoney, } from './helpers.js'
+import { disableLogs, formatDuration, formatMoney, reservedMoney } from './helpers.js'
 
 let haveHacknetServers = true; // Cached flag after detecting whether we do (or don't) have hacknet servers
 const argsSchema = [
@@ -133,7 +133,7 @@ export function upgradeHacknet(ns, maxSpend, maxPayoffTimeSeconds = 3600 /* 3600
         log(ns, `The next best purchase would be ${strPurchase}, but the ${strPayoff} is worse than the limit (${formatDuration(1000 * maxPayoffTimeSeconds)})`);
         return false; // Shut-down. As long as maxPayoffTimeSeconds doesn't change, we will never purchase another upgrade
     }
-    const reserve = (options['reserve'] != null ? options['reserve'] : Number(ns.read("reserve.txt") || 0));
+    const reserve = (options['reserve'] != null ? options['reserve'] : reservedMoney(ns));
     const playerMoney = ns.getPlayer().money;
     if (cost > playerMoney - reserve) {
         log(ns, `The next best purchase would be ${strPurchase}, but the cost exceeds the our ` +

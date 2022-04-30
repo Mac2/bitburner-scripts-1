@@ -438,3 +438,21 @@ export function setLSItem(key, value) {
 export function clearLSItem(key) {
   localStorage.removeItem(lsKeys[key.toUpperCase()])
 }
+
+// Returns the amount of money we should currently be reserving. Dynamically adapts to save money for a couple of big purchases on the horizon
+function reservedMoney(ns) {
+    let shouldReserve = Number(ns.read("reserve.txt") || 0);
+    let playerMoney = ns.getServerMoneyAvailable("home");
+    for ( const file of purchaseables ) {
+        if (!doesFileExist(file.name, "home") && playerMoney > file.cost * 0.8) {
+          return file.cost + shouldReserve;     // Start saving missing 20% for the next File
+        }
+    }
+
+    if (bitnodeMults) {
+        const fourSigmaCost = (bitnodeMults.FourSigmaMarketDataApiCost * 25000000000);
+        if (!playerStats.has4SDataTixApi && playerMoney >= fourSigmaCost / 2)
+            shouldReserve += fourSigmaCost; // Start saving if we're half-way to buying 4S market access
+    }
+    return shouldReserve;
+}

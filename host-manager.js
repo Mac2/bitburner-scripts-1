@@ -1,4 +1,4 @@
-import { formatMoney, formatRam, instanceCount, getNsDataThroughFile, scanAllServers, log } from './helpers.js'
+import { formatMoney, formatRam, instanceCount, getNsDataThroughFile, scanAllServers, log, reservedMoney } from './helpers.js'
 import { purchasedServersName } from './constants.js'
 // The purpose of the host manager is to buy the best servers it can
 // until it thinks RAM is underutilized enough that you don't need to anymore.
@@ -80,7 +80,7 @@ export async function main(ns) {
     if (!keepRunning)
         log(ns, `host-manager will run once. Run with argument "-c" to run continuously.`)
     do {
-        absReservedMoney = options['absolute-reserve'] != null ? options['absolute-reserve'] : Number(ns.read("reserve.txt") || 0);
+        absReservedMoney = options['absolute-reserve'] != null ? options['absolute-reserve'] : reservedMoney(ns);
         await tryToBuyBestServerPossible(ns);
         if (keepRunning)
             await ns.sleep(options['interval']);

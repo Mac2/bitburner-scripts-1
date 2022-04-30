@@ -3,7 +3,8 @@ import {
     scanAllServers, hashCode, disableLogs, log, getFilePath,
     getNsDataThroughFile_Custom, runCommand_Custom, waitForProcessToComplete_Custom,
     tryGetBitNodeMultipliers_Custom, getActiveSourceFiles_Custom,
-    getFnRunViaNsExec, getFnIsAliveViaNsPs, autoRetry, getLSItem
+    getFnRunViaNsExec, getFnIsAliveViaNsPs, autoRetry, getLSItem,
+    reservedMoney
 } from './helpers.js'
 import { crackNames, purchasedServersName, purchaseables } from './constants.js'
 
@@ -105,22 +106,6 @@ let psCache = [];
 function ps(ns, server, canUseCache = true) {
     const cachedResult = psCache[server];
     return canUseCache && cachedResult ? cachedResult : (psCache[server] = ns.ps(server));
-}
-
-// Returns the amount of money we should currently be reserving. Dynamically adapts to save money for a couple of big purchases on the horizon
-function reservedMoney(ns) {
-    let shouldReserve = Number(ns.read("reserve.txt") || 0);
-    let playerMoney = ns.getServerMoneyAvailable("home");
-    for ( const file of purchaseables ) {
-        if (!doesFileExist(file.name, "home") && playerMoney > file.cost * 0.8) {
-          return file.cost + shouldReserve;     // Start saving missing 20% for the next File
-        }
-    }
-
-    const fourSigmaCost = (bitnodeMults.FourSigmaMarketDataApiCost * 25000000000);
-    if (!playerStats.has4SDataTixApi && playerMoney >= fourSigmaCost / 2)
-        shouldReserve += fourSigmaCost; // Start saving if we're half-way to buying 4S market access
-    return shouldReserve;
 }
 
 let options;
@@ -240,7 +225,7 @@ export async function main(ns) {
     const openTailWindows = !options['no-tail-windows'];
     asynchronousHelpers = [
         { name: "stats.js", shouldRun: () => ns.getServerMaxRam("home") >= 64 /* Don't waste precious RAM */ }, // Adds stats not usually in the HUD
-        { name: "stockmaster.js", args: openTailWindows ? ["--show-market-summary","--reserve",reservedMoney(ns)] : ["--reserve",reservedMoney(ns)], tail: openTailWindows }, // Start our stockmaster
+        { name: "stockmaster.js", args: openTailWindows ? ["--show-market-summary"] : [], tail: openTailWindows }, // Start our stockmaster
         { name: "hacknet-upgrade-manager.js", args: ["-c", "--max-payoff-time", "1h"] }, // Kickstart hash income by buying everything with up to 1h payoff time immediately
         { name: "spend-hacknet-hashes.js", args: [], shouldRun: () => 9 in dictSourceFiles }, // Always have this running to make sure hashes aren't wasted
         { name: "sleeve.js", tail: openTailWindows, shouldRun: () => 10 in dictSourceFiles }, // Script to create manage our sleeves for us

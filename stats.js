@@ -1,4 +1,4 @@
-import { log, formatNumberShort, formatMoney, instanceCount, getNsDataThroughFile, getActiveSourceFiles, disableLogs, getStocksValue, getLSItem } from './helpers.js'
+import { log, formatNumberShort, formatMoney, instanceCount, getNsDataThroughFile, getActiveSourceFiles, disableLogs, getStocksValue, getLSItem, reservedMoney } from './helpers.js'
 
 const argsSchema = [
     ['hide-stocks', false],
@@ -61,7 +61,7 @@ export async function main(ns) {
             addHud("ScrExp", formatNumberShort(ns.getScriptExpGain(), 3, 2) + '/sec', "Total 'instantenous' hack experience per second being earned across all scripts running on all servers.");
 
             // Show reserved money
-            const reserve = ns.read("reserve.txt") || 0;
+            const reserve = reservedMoney(ns);
             if (reserve > 0) // Bitburner bug: Trace amounts of share power sometimes left over after we stop sharing
                 addHud("Reserve", formatNumberShort(reserve, 3, 2), "Most scripts will leave this much money unspent. Remove with `run reserve.js 0`");
 

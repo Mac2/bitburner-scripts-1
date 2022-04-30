@@ -1,4 +1,4 @@
-import { instanceCount, getActiveSourceFiles, getNsDataThroughFile, runCommand, formatMoney, formatDuration, disableLogs, log } from './helpers.js'
+import { instanceCount, getActiveSourceFiles, getNsDataThroughFile, runCommand, formatMoney, formatDuration, disableLogs, log, reservedMoney } from './helpers.js'
 
 const interval = 5000; // Update (tick) this often
 const minTaskWorkTime = 29000; // Sleeves assigned a new task should stick to it for at least this many milliseconds
@@ -96,7 +96,7 @@ async function mainLoop(ns) {
     numSleeves = await getNsDataThroughFile(ns, `ns.sleeve.getNumSleeves()`, '/Temp/sleeve-count.txt');
     const playerInfo = await getNsDataThroughFile(ns, 'ns.getPlayer()', '/Temp/player-info.txt');
     if (!playerInGang) playerInGang = await getNsDataThroughFile(ns, 'ns.gang.inGang()', '/Temp/gang-inGang.txt');
-    let globalReserve = Number(ns.read("reserve.txt") || 0);
+    let globalReserve = reservedMoney(ns);
     let budget = (playerInfo.money - (options['reserve'] || globalReserve)) * options['aug-budget'];
     // Estimate the cost of sleeves training over the next time interval to see if (ignoring income) we would drop below our reserve.
     const costByNextLoop = interval / 1000 * task.filter(t => t.startsWith("train")).length * 12000; // TODO: Training cost/sec seems to be a bug. Should be 1/5 this ($2400/sec)

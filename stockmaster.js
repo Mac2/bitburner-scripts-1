@@ -1,6 +1,7 @@
 import {
     formatMoney, formatNumberShort, formatDuration,
-    instanceCount, getNsDataThroughFile, runCommand, getActiveSourceFiles, tryGetBitNodeMultipliers
+    instanceCount, getNsDataThroughFile, runCommand, getActiveSourceFiles, tryGetBitNodeMultipliers,
+    reservedMoney
 } from './helpers.js'
 
 let disableShorts = false;
@@ -114,7 +115,7 @@ export async function main(ns) {
         do {
             await ns.sleep(sleepInterval);
             try {
-                const reserve = options['reserve'] != null ? options['reserve'] : Number(ns.read("reserve.txt") || 0);
+                const reserve = options['reserve'] != null ? options['reserve'] : reservedMoney(ns);
                 success = await tryGetStockMarketAccess(ns, player = ns.getPlayer(), player.money - reserve);
             } catch (err) {
                 log(ns, `WARNING: stockmaster.js Caught (and suppressed) an unexpected error while waiting to buy stock market access:\n` +
@@ -152,7 +153,7 @@ export async function main(ns) {
     while (true) {
         try {
             const playerStats = ns.getPlayer();
-            const reserve = options['reserve'] != null ? options['reserve'] : Number(ns.read("reserve.txt") || 0);
+            const reserve = options['reserve'] != null ? options['reserve'] : reservedMoney(ns);
             const pre4s = !playerStats.has4SDataTixApi;
             const holdings = await refresh(ns, playerStats.has4SDataTixApi, allStocks, myStocks); // Returns total stock value
             const corpus = holdings + playerStats.money; // Corpus means total stocks + cash
