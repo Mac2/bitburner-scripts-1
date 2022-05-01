@@ -115,17 +115,17 @@ class Report {
     this.process_manager = processManager;
     
     let str = 'SUCCESS: ---------- '
+    /* Of 71 total servers: > 8 ignored (owned/no money), 15 skipped for now (time, RAM, or target + prepping cap reached)
+        > 40 cannot be hacked (0 prepping, 0 prepped, next unlock at Hack 484)
+        > Targeting: 4 servers, Prepping: 4
+     */        
+    //str += this.serverStatus(servers,failed,skipped)   //ServerStatus    
     /*  Ongoing:    10033 total  1219w threads ( 8 servers)  8005g threads ( 8 servers)   809h threads ( 4 servers)     0s threads ( 0 servers) */
     str += this.processSummary(processManager);
     /* This cycle:  2776 total   336w threads ( 2 servers)  2440g threads ( 2 servers)     0h threads ( 0 servers)     0s threads ( 0 servers) */
     str += this.activitySummary();
     /* RAM Utilization: 17.215 GB of 19.773 GB (87.1%) for 0 its, Max Targets: 5, Loop Took: 55ms */
     str += this.networkSummary(lowUtilizationIterations,highUtilizationIterations,maxTargets,start)   //RAM
-    /* Of 71 total servers: > 8 ignored (owned/no money), 15 skipped for now (time, RAM, or target + prepping cap reached)
-       > 40 cannot be hacked (0 prepping, 0 prepped, next unlock at Hack 484)
-       > Targeting: 4 servers, Prepping: 4
-     */        
-    str += this.serverStatus(servers,failed,skipped)   //ServerStatus    
     str += this.serverSummary(ns, servers.filter(s => s.shouldHack()), processManager)  // Targetlist
     this.lastUpdateTime = Date.now();
     return str
