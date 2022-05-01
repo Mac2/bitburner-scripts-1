@@ -2,7 +2,7 @@ import { lsKeys } from './constants.js'
 import { getLSItem, formatMoney, formatNumberShort, formatMilliseconds } from './helpers.js'
 
 export function autocomplete(data) {
-  return Object.keys(lsKeys).concat(data.servers)
+  return Object.keys(lsKeys)
 }
 
 /**

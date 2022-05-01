@@ -440,7 +440,11 @@ export function clearLSItem(key) {
 }
 
 // Returns the amount of money we should currently be reserving. Dynamically adapts to save money for a couple of big purchases on the horizon
-export async function reservedMoney(ns) {
+/**
+ * @param {NS} ns
+ * @param {string} reason 4SApi|TixApi
+ */
+export async function reservedMoney(ns,reason='') {
     disableLogs(ns, ['getServerMoneyAvailable']);
     let shouldReserve = Number(ns.read("reserve.txt") || 0);
     let playerMoney = ns.getServerMoneyAvailable("home");
@@ -456,12 +460,32 @@ export async function reservedMoney(ns) {
         ServerGrowthRate: 1,
         ServerWeakenRate: 1,
         FourSigmaMarketDataApiCost: 1,
+        FourSigmaMarketDataCost: 1,
         ScriptHackMoneyGain: 1
     };
     
-    const fourSigmaCost = (bitnodeMults.FourSigmaMarketDataApiCost * 25000000000);
-    if (!playerStats.has4SDataTixApi && playerMoney >= fourSigmaCost / 2)
-        shouldReserve += fourSigmaCost; // Start saving if we're half-way to buying 4S market access
-
+    // only reserve if we dont want to purchase this API
+    if (reason !== 'TixApi') {
+        const costWseAccount = 200E6;
+        const costTixApi = 5E9;
+        if (!playerStats.hasWseAccount && playerMoney >= costWseAccount * 0.8)
+            shouldReserve += costWseAccount;
+        
+        // we need already a WSE Account
+        if (!playerStats.hasTixApiAccess && playerStats.hasWseAccount && playerMoney >= costTixApi * 0.8)
+            shouldReserve += costTixApi;    // Start saving if we have 80% available
+    }
+    
+    // only reserve if we dont want to purchase this API
+    if (reason !== '4SApi') {
+        const cost4sData = 1E9 * bitnodeMults.FourSigmaMarketDataCost;
+        const cost4sApi = 25E9 * bitnodeMults.FourSigmaMarketDataApiCost;
+        
+        if (!playerStats.has4SData && playerMoney >= cost4sApi * 0.8)
+            shouldReserve += cost4sData;    // Start saving if we have 80% available            
+        if (!playerStats.has4SDataTixApi && playerMoney >= cost4sApi / 2)
+            shouldReserve += cost4sApi; // Start saving if we're half-way to buying 4S market access
+    }
+    
     return shouldReserve;
 }

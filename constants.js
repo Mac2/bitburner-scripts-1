@@ -17,4 +17,5 @@ export const lsKeys = {
   RESERVE : 'mac_reserve',
   RESERVERAM : 'mac_reserveram',  
   OUTOFMEMORY: 'mac_outofmemory',
+  TOPTARGETS: 'mac_toptargets',
 }

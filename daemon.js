@@ -92,6 +92,127 @@ let highUtilizationIterations = 0;
 let lastShareTime = 0; // Tracks when share was last invoked so we can respect the configured share-cooldown
 let allTargetsPrepped = false;
 
+let reporter;
+class Report {
+  constructor() {
+    this.activity = {
+      w: { type: 'w', threads: 0, servers: 0 },
+      g: { type: 'g', threads: 0, servers: 0 },
+      h: { type: 'h', threads: 0, servers: 0 },
+      s: { type: 's', threads: 0, servers: 0 },
+    }
+  }
+  record(type, threads) {
+    type = type[0]
+    this.activity[type].threads += threads
+    this.activity[type].servers += 1
+  }
+  output(ns, servers, processManager) {
+    let str = 'SUCCESS: ---------- '
+    str += this.processSummary(processManager)
+    str += this.activitySummary()   //Threads
+    str += this.serverStatus()   //ServerStatus
+    str += this.serverSummary(ns, servers, processManager)  // Targets
+    return str
+  }
+  // N.B.: The threads listed here and in activitySummary are the PRIMARY
+  // ACTIVITY threads. IE, if the script is weakening the server because
+  // security is too high, those threads will be counted; if the script is
+  // weakening the server because it is running an associated grow or hack,
+  // those weak threads are not counted (only the grow or hack threads).
+  processSummary(processManager) {
+    let str = '\n\r Ongoing:   '
+    const summaryData = processManager.summaryData()
+    const total = summaryData.reduce((t, a) => { return t + a.threads}, 0)
+    str += `${total.toString().padStart(6)} total `
+    summaryData.forEach(d =>
+      str += `${d.threads.toString().padStart(5)}${d.type} threads ` +
+        `(${d.servers.toString().padStart(2)} servers) `
+    )
+    return str
+  }
+
+  activitySummary() {
+    let str = '\n\r This cycle:'
+    const activity = Object.values(this.activity)
+    const totalThreads = activity.reduce((t, a) => { return t + a.threads }, 0)
+    str += `${totalThreads.toString().padStart(6)} total `
+    activity.forEach( a =>
+      str += `${a.threads.toString().padStart(5)}${a.type} threads ` +
+        `(${a.servers.toString().padStart(2)} servers) `
+    )
+    return str
+  }
+
+  serverSummary(ns, servers, processManager) {
+    const top = servers.slice(0,getLSItem('toptargets') || 5);
+    const nameLength = Math.max(... top.map(t => t.name.length));
+    let str = '\n\r '
+    str += ''.padStart(nameLength,'-')
+    str += ' Top targets ---------------------------------'
+    str += ' | Ongoing Threads:'
+    str += `\n\r ` + `Name`.padEnd(nameLength)
+    str += ` |  Sec/min    |  Money/max          | wTime   |     weak   grow   hack`
+    for (const server of top ) {
+      str += `\n\r ${server.name.padEnd(nameLength)} | ` +
+        `${formatNumber(server.getSecurity()).padStart(5)}/` +
+        `${formatNumber(server.getMinSecurity()).padEnd(5)} | ` +
+        `${formatMoney(server.getMoney()).padStart(9)}/` +
+        `${formatMoney(server.getMaxMoney()).padEnd(9)} | ` +
+        `${formatDuration(ns.getWeakenTime(server.name)).padEnd(7)} | ` +
+        `${processManager.runningThreadCount('weak', server.name)}`.padStart(8) +
+        `${processManager.runningThreadCount('grow', server.name)}`.padStart(7) +
+        `${processManager.runningThreadCount('hack', server.name)}`.padStart(7)
+    }
+    return str
+  }
+}
+
+class ProcessManager {
+  constructor() {
+    this.threadList = []
+  }
+  runningThreadCount(type, target) {
+    return this.filter(type, target).reduce((t, c) => { return t + c.threads }, 0)
+  }
+  filter(type, target){
+    return this.threadList.filter(p => p.type == type && p.target == target)
+  }
+  cleanup(ns){
+    this.threadList = this.threadList.filter(p => ns.isRunning(p.pid))
+  }
+  addProcess(pid, threads, target, type) {
+    this.threadList.push(new Process(pid, threads, target, type))
+  }
+  summaryData() {
+    const summary = {
+      'weak': { type: 'w', threads: 0, servers: 0, serverNames: []},
+      'grow':   { type: 'g', threads: 0, servers: 0, serverNames: []},
+      'hack':   { type: 'h', threads: 0, servers: 0, serverNames: []},
+      'share':   { type: 's', threads: 0, servers: 0, serverNames: []},
+    }
+    this.threadList.forEach(p => {
+      summary[p.type].threads += p.threads
+      if (!summary[p.type].serverNames.includes(p.target)) {
+        summary[p.type].servers++
+        summary[p.type].serverNames.push(p.target)
+      }
+    })
+    return Object.values(summary)
+  }
+}
+
+class Process {
+  constructor(pid, threads, target, type) {
+    this.pid = pid
+    this.threads = threads
+    this.target = target
+    this.type = type
+  }
+}
+
+const processManager = new ProcessManager()
+
 async function updatePlayerStats() { return playerStats = await getNsDataThroughFile(_ns, `ns.getPlayer()`, '/Temp/player-info.txt'); }
 
 function playerHackSkill() { return playerStats.hacking; }
@@ -252,7 +373,7 @@ export async function main(ns) {
     periodicScripts = [
         // Buy tor as soon as we can if we haven't already, and all the port crackers (exception: don't buy 2 most expensive port crackers until later if in a no-hack BN)
         { interval: 25000, name: "/Tasks/tor-manager.js", shouldRun: () => 4 in dictSourceFiles && !addedServerNames.includes("darkweb") },
-        { interval: 26000, name: "/Tasks/program-manager.js", shouldRun: () => 4 in dictSourceFiles && getNumPortCrackers() != 5 && (getNumPortCrackers() < 3 || shouldImproveHacking()) },
+        { interval: 26000, name: "/Tasks/program-manager.js", shouldRun: () => 4 in dictSourceFiles && (getNumPortCrackers() != 5 || !hasFormulas) && (getNumPortCrackers() < 3 || shouldImproveHacking()) },
         { interval: 27000, name: "/Tasks/contractor.js", shouldRun: () => ns.getServerMaxRam("home") >= 32, requiredServer: "home" }, // Periodically look for coding contracts that need solving
         // Buy every hacknet upgrade with up to 4h payoff if it is less than 10% of our current money or 8h if it is less than 1% of our current money.
         { interval: 28000, name: "hacknet-upgrade-manager.js", shouldRun: await shouldUpgradeHacknet, args: () => ["-c", "--max-payoff-time", "4h", "--max-spend", ns.getServerMoneyAvailable("home") * 0.1] },
@@ -465,7 +586,7 @@ async function exec(ns, script, host, numThreads, ...args) {
         const p = ns.exec(script, host, numThreads, ...args)
         if (firstRun) await ns.asleep(5); // Reports have come in that putting a brief sleep after the calls to exec works around the issue
         return p;
-    }, p => p !== 0, () => `Attempt to exec ${script} on ${host} returned no pid.\nYou may be too low on RAM, or the script may be invalid.`);
+    }, p => p !== 0, () => `Attempt to exec ${script} on ${host} returned no pid.\nYou may be too low on RAM, or the script may be invalid.`);    
     return pid; // Caller is responsible for handling errors if final pid returned is 0 (indicating failure)
 }
 
@@ -483,6 +604,9 @@ async function doTargetingLoop(ns) {
     let loops = -1;
     //var isHelperListLaunched = false; // Uncomment this and related code to keep trying to start helpers
     do {
+        processManager.cleanup(ns);
+        reporter = new Report();
+        
         loops++;
         if (loops > 0) await ns.asleep(loopInterval); // Use asleep to avoid an error if another daemon is spawned to kill this one while it's asleep.
         try {
@@ -707,12 +831,14 @@ async function doTargetingLoop(ns) {
             if (xpOnly)
                 keyUpdates += `\n > Grinding XP from ${targeting.map(s => s.name).join(", ")}`;
             // To reduce log spam, only log if some key status changes, or if it's been a minute
+            // TODO: include this information in reporter class
             if (keyUpdates != lastUpdate || (Date.now() - lastUpdateTime) > 60000) {
                 log(ns, (lastUpdate = keyUpdates) +
                     '\n > RAM Utilization: ' + formatRam(Math.ceil(network.totalUsedRam)) + ' of ' + formatRam(network.totalMaxRam) + ' (' + (utilizationPercent * 100).toFixed(1) + '%) ' +
                     `for ${lowUtilizationIterations || highUtilizationIterations} its, Max Targets: ${maxTargets}, Loop Took: ${Date.now() - start}ms`);
                 lastUpdateTime = Date.now();
-            }            
+            }
+            ns.print(reporter.output(ns, serverListByTargetOrder.filter(s => s.shouldHack()), processManager))            
             //log(ns, 'Prepping: ' + prepping.map(s => s.name).join(', '))
             //log(ns, 'targeting: ' + targeting.map(s => s.name).join(', '))            
         } catch (err) {
@@ -734,7 +860,7 @@ async function doTargetingLoop(ns) {
             let deletedHostName = errorMessage.substring(start, lineBreak);
             log(ns, 'INFO: The server "' + deletedHostName + '" appears to have been deleted. Removing it from our lists', true, 'info');
             removeServerByName(ns, deletedHostName);
-        }
+        }        
     } while (!runOnce);
 }
 
@@ -1319,6 +1445,11 @@ export async function arbitraryExecution(ns, tool, threads, args, preferredServe
         if (pid == 0) {
             log(ns, `ERROR: Failed to exec ${tool.name} on server ${targetServer.name} with ${maxThreadsHere} threads`, false, 'error');
             return false;
+        }
+        // TODO: manualhack ?
+        if (reporter && (["grow","weak","hack","share"].includes(tool.shortName)) {
+            processManager.addProcess(pid, maxThreadsHere, args[0], tool.shortName)
+            reporter.record(tool.shortName, maxThreadsHere)
         }
         // Decrement the threads that have been successfully scheduled
         remainingThreads -= maxThreadsHere;

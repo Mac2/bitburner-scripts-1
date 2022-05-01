@@ -115,7 +115,7 @@ export async function main(ns) {
         do {
             await ns.sleep(sleepInterval);
             try {
-                const reserve = options['reserve'] != null ? options['reserve'] : await reservedMoney(ns);
+                const reserve = options['reserve'] != null ? options['reserve'] : await reservedMoney(ns,'TixApi');
                 success = await tryGetStockMarketAccess(ns, player = ns.getPlayer(), player.money - reserve);
             } catch (err) {
                 log(ns, `WARNING: stockmaster.js Caught (and suppressed) an unexpected error while waiting to buy stock market access:\n` +
@@ -153,7 +153,7 @@ export async function main(ns) {
     while (true) {
         try {
             const playerStats = ns.getPlayer();
-            const reserve = options['reserve'] != null ? options['reserve'] : await reservedMoney(ns);
+            const reserve = options['reserve'] != null ? options['reserve'] : await reservedMoney(ns,'4SApi');
             const pre4s = !playerStats.has4SDataTixApi;
             const holdings = await refresh(ns, playerStats.has4SDataTixApi, allStocks, myStocks); // Returns total stock value
             const corpus = holdings + playerStats.money; // Corpus means total stocks + cash
