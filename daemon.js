@@ -817,7 +817,7 @@ async function doTargetingLoop(ns) {
             // Log some status updates
             let keyUpdates = `Of ${serverListByFreeRam.length} total servers:\n > ${noMoney.length} were ignored (owned or no money)`;
             if (notRooted.length > 0)
-                keyUpdates += `, ${notRooted.length} are not rooted (missing ${crackNames.filter(c => !ownedCracks.includes(c.name)).join(', ')})`;
+                keyUpdates += `, ${notRooted.length} are not rooted (missing ${crackNames.filter(c => !ownedCracks.includes(c.name)).map(c => c.name).join(', ')})`;
             if (cantHack.length > 0)
                 keyUpdates += `\n > ${cantHack.length} cannot be hacked (${cantHackButPrepping.length} prepping, ` +
                     `${cantHackButPrepped.length} prepped, next unlock at Hack ${lowestUnhackable})`;
