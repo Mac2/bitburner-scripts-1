@@ -1,5 +1,5 @@
 import {
-    log, formatNumberShort, formatMoney,
+    log, formatNumberShort, formatMoney, formatDuration,
     instanceCount, getNsDataThroughFile, getActiveSourceFiles, tryGetBitNodeMultipliers, getStocksValue
 } from './helpers.js'
 
@@ -608,7 +608,7 @@ async function managePurchaseableAugs(ns, outputRows, accessibleAugs) {
             `Total of ${getCostString(totalAugCost + nextNfCost, totalRepCost + nextNfRepCost)}`);
         if (totalCostWithNextNf > budget || nextNfRep > augNfFaction.reputation && !augNfFaction.donationsUnlocked) {
             outputRows.push(`NF ${nfPurchased + 1} will be available at Money:     ${getCostString(totalAugCost + nextNfCost, totalRepCost + nextNfRepCost)} ` +
-                `${(totalCostWithNextNf > budget ? '✗' : '✓')} and "${augNfFaction.name}" reputation: ${formatNumberShort(nextNfRep)} ` +
+                `${(totalCostWithNextNf > budget ? '✗' : '✓')} (approx. ${formatDuration(1000*(totalAugCost + nextNfCost+ totalRepCost + nextNfRepCost)/ns.getScriptIncome()[0])}) and "${augNfFaction.name}" reputation: ${formatNumberShort(nextNfRep)} ` +
                 (nextNfRep > augNfFaction.reputation && !augNfFaction.donationsUnlocked ? '✗' : '✓') +
                 ` (have ${formatNumberShort(augNfFaction.reputation)}` + (nextNfRep > augNfFaction.reputation ? '' :
                     augNfFaction.donationsUnlocked ? ', can donate' : ', donations unavailable') + `)`);
