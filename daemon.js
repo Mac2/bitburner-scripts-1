@@ -871,18 +871,18 @@ async function doTargetingLoop(ns) {
             } // else log(ns, `Not Sharing. workCapped: ${isWorkCapped()} utilizationPercent: ${utilizationPercent} maxShareUtilization: ${maxShareUtilization} cooldown: ${formatDuration(Date.now() - lastShareTime)} networkRam: ${network.totalMaxRam}`);
 
             // Log some status updates
-            let keyUpdates = `Of ${serverListByFreeRam.length} total servers:\n > ${noMoney.length} were ignored (owned or no money)`;
+            let keyUpdates = `Of ${serverListByFreeRam.length} total servers:\n > ${noMoney.length} ignored (owned/no money)`;
             if (notRooted.length > 0)
-                keyUpdates += `, ${notRooted.length} are not rooted (missing ${crackNames.filter(c => !ownedCracks.includes(c.name)).map(c => c.name).join(', ')})`;
+                keyUpdates += `, ${notRooted.length} not rooted (missing ${crackNames.filter(c => !ownedCracks.includes(c.name)).map(c => c.name).join(', ')})`;            
+            if (skipped.length > 0)
+                keyUpdates += `, ${skipped.length} skipped for now (time, RAM, or target + prepping cap reached)`;
+            if (failed.length > 0)
+                keyUpdates += `, ${failed.length} servers failed to be scheduled (insufficient RAM?).`;
             if (cantHack.length > 0)
                 keyUpdates += `\n > ${cantHack.length} cannot be hacked (${cantHackButPrepping.length} prepping, ` +
                     `${cantHackButPrepped.length} prepped, next unlock at Hack ${lowestUnhackable})`;
             if (preppedButNotTargeting.length > 0)
-                keyUpdates += `\n > ${preppedButNotTargeting.length} are prepped but are not a priority target`;
-            if (skipped.length > 0)
-                keyUpdates += `\n > ${skipped.length} were skipped for now (time, RAM, or target + prepping cap reached)`;
-            if (failed.length > 0)
-                keyUpdates += `\n > ${failed.length} servers failed to be scheduled (insufficient RAM?).`;
+                keyUpdates += `\n > ${preppedButNotTargeting.length} are prepped but are not a priority target`;            
             keyUpdates += `\n > Targeting: ${targeting.length} servers, Prepping: ${prepping.length + cantHackButPrepping.length}`;
             if (xpOnly)
                 keyUpdates += `\n > Grinding XP from ${targeting.map(s => s.name).join(", ")}`;
