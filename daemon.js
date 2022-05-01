@@ -92,7 +92,7 @@ let highUtilizationIterations = 0;
 let lastShareTime = 0; // Tracks when share was last invoked so we can respect the configured share-cooldown
 let allTargetsPrepped = false;
 
-let reporter;
+
 class Report {
   constructor() {
     this.activity = {
@@ -104,13 +104,14 @@ class Report {
     this.lowestUnhackable = 99999;
     this.lastUpdateTime = undefined;
     this.process_manager = undefined;
+    this.server_status = undefined;
   }
   record(type, threads) {
     type = type[0]
     this.activity[type].threads += threads
     this.activity[type].servers += 1
   }
-  output(ns, servers, processManager,lowUtilizationIterations,highUtilizationIterations,maxTargets,start) {    
+  output(ns, servers, processManager,lowUtilizationIterations,highUtilizationIterations,maxTargets,start,failed,skipped) {    
     this.process_manager = processManager;
     
     let str = 'SUCCESS: ---------- '
@@ -123,8 +124,8 @@ class Report {
     /* Of 71 total servers: > 8 ignored (owned/no money), 15 skipped for now (time, RAM, or target + prepping cap reached)
        > 40 cannot be hacked (0 prepping, 0 prepped, next unlock at Hack 484)
        > Targeting: 4 servers, Prepping: 4
-     */    
-    str += this.serverStatus(servers)   //ServerStatus    
+     */        
+    str += this.serverStatus(servers,failed,skipped)   //ServerStatus    
     str += this.serverSummary(ns, servers.filter(s => s.shouldHack()), processManager)  // Targetlist
     this.lastUpdateTime = Date.now();
     return str
@@ -159,7 +160,7 @@ class Report {
   }
   
   networkSummary(lowUtilizationIterations,highUtilizationIterations,maxTargets,start) {      
-    let str = '\n\r RAM Utilization:'
+    let str = '\n\r RAM Util:  '
     let network = getNetworkStats();
     let utilizationPercent = network.totalUsedRam / network.totalMaxRam;    
     str += formatRam(Math.ceil(network.totalUsedRam)) + ' of ' + formatRam(network.totalMaxRam) + ' (' + (utilizationPercent * 100).toFixed(1) + '%) ' +
@@ -168,6 +169,7 @@ class Report {
   }
   
   serverStatus(servers,failed,skipped) {
+      
     this.lowestUnhackable = Math.min(servers.filter(s => !s.canHack()).map(s => s.requiredHackLevel).push(this.lowestUnhackable));        
     let cantHack = servers.filter(s => !s.canHack());
     let cantHackButPrepped = servers.filter(s => !s.canHack() && s.isPrepped());
@@ -176,6 +178,7 @@ class Report {
     let targeting = servers.filter(s => s.isTargeting());    
     let preppedButNotTargeting = []
     let notrooted = servers.filter(s => !s.hasRoot());
+    
     let str = `\n\rOf ${serverListByFreeRam.length} total servers: > ${servers.filter(s => !s.shouldHack()).length} ignored (owned/no money)`
     if (notrooted.length > 0)
         str += `, ${notrooted.length} not rooted (missing ${crackNames.filter(c => !ownedCracks.includes(c.name)).map(c => c.name).join(', ')})`;
@@ -188,8 +191,13 @@ class Report {
     str += `\n > ${preppedButNotTargeting.length} are prepped but are not a priority target`;
     str += `\n > Targeting: ${targeting.length} servers, Prepping: ${prepping.length}`;
     //if (xpOnly)
-     //           keyUpdates += `\n > Grinding XP from ${targeting.map(s => s.name).join(", ")}`;
-    return str;
+    //           str += `\n > Grinding XP from ${targeting.map(s => s.name).join(", ")}`;
+    
+    if (!this.server_status || this.server_status !== str) {
+        this.server_status = str;
+        return str;
+    }        
+    return "";
   }
   serverSummary(ns, servers, processManager) {
     const top = servers.slice(0,getLSItem('toptargets') || 5);
@@ -259,6 +267,7 @@ class Process {
 }
 
 const processManager = new ProcessManager()
+const reporter = new Report();
 
 async function updatePlayerStats() { return playerStats = await getNsDataThroughFile(_ns, `ns.getPlayer()`, '/Temp/player-info.txt'); }
 
@@ -652,7 +661,7 @@ async function doTargetingLoop(ns) {
     //var isHelperListLaunched = false; // Uncomment this and related code to keep trying to start helpers
     do {
         processManager.cleanup(ns);
-        reporter = new Report();
+        
         
         loops++;
         if (loops > 0) await ns.asleep(loopInterval); // Use asleep to avoid an error if another daemon is spawned to kill this one while it's asleep.
@@ -885,10 +894,7 @@ async function doTargetingLoop(ns) {
                     //`for ${lowUtilizationIterations || highUtilizationIterations} its, Max Targets: ${maxTargets}, Loop Took: ${Date.now() - start}ms`);
                 lastUpdateTime = Date.now();
             }
-            // only for debugging
-            log(ns,'\n > RAM Utilization: ' + formatRam(Math.ceil(network.totalUsedRam)) + ' of ' + formatRam(network.totalMaxRam) + ' (' + (utilizationPercent * 100).toFixed(1) + '%) ' +
-                    `for ${lowUtilizationIterations || highUtilizationIterations} its, Max Targets: ${maxTargets}, Loop Took: ${Date.now() - start}ms`);            
-            log(ns,reporter.output(ns, serverListByTargetOrder, processManager,lowUtilizationIterations,highUtilizationIterations,maxTargets,start));
+            log(ns,reporter.output(ns, serverListByTargetOrder, processManager,lowUtilizationIterations,highUtilizationIterations,maxTargets,start,failed,skipped));
             //log(ns, 'Prepping: ' + prepping.map(s => s.name).join(', '))
             //log(ns, 'targeting: ' + targeting.map(s => s.name).join(', '))            
         } catch (err) {
