@@ -57,6 +57,8 @@ export async function main(ns) {
             if (!options['hide-stocks'] && !doc.getElementById("stock-display-1")) {
                 const stkPortfolio = await getStocksValue(ns);
                 if (stkPortfolio > 0) addHud("Stock", formatMoney(stkPortfolio)); // Also, don't bother showing a section for stock if we aren't holding anything
+                const stkProfit = getLSItem('stockprofit');
+                if (stkProfit != 0) addHud("StockProfit", formatMoney(stkProfit)); 
             }
 
             // Show total instantaneous script income and experience per second (values provided directly by the game)

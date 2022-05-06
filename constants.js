@@ -18,4 +18,5 @@ export const lsKeys = {
   RESERVERAM : 'mac_reserveram',  
   OUTOFMEMORY: 'mac_outofmemory',
   TOPTARGETS: 'mac_toptargets',
+  STOCKPROFIT: 'mac_stockprofit',
 }

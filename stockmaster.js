@@ -2,6 +2,7 @@ import {
     instanceCount, getConfiguration, getNsDataThroughFile, runCommand, getActiveSourceFiles, tryGetBitNodeMultipliers,
     formatMoney, formatNumberShort, formatDuration, reservedMoney
 } from './helpers.js'
+import { setLSItem } from './helpers.js'
 
 let disableShorts = false;
 let commission = 100000; // Buy/sell commission. Expected profit must exceed this to buy anything.
@@ -527,6 +528,7 @@ function doStatusUpdate(ns, stocks, myStocks, hudElement = null) {
         `Profit: ${formatMoney(totalProfit, 3)} Holdings: ${formatMoney(liquidation_value, 3)} (Cost: ${formatMoney(est_holdings_cost, 3)}) ` +
         `Net: ${formatMoney(totalProfit + liquidation_value - est_holdings_cost, 3)}`
     log(ns, status);
+    setLSItem("stockprofit",totalProfit);
     if (hudElement) hudElement.innerText = formatMoney(liquidation_value, 6, 3);
 }
 
