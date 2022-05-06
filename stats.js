@@ -56,11 +56,13 @@ export async function main(ns) {
             // Show Stocks (only if stockmaster.js isn't already doing the same)
             if (!options['hide-stocks'] && !doc.getElementById("stock-display-1")) {
                 const stkPortfolio = await getStocksValue(ns);
-                if (stkPortfolio > 0) addHud("Stock", formatMoney(stkPortfolio)); // Also, don't bother showing a section for stock if we aren't holding anything
+                if (stkPortfolio > 0) addHud("Stock", formatMoney(stkPortfolio)); // Also, don't bother showing a section for stock if we aren't holding anything                
+            }
+            if (!options['hide-stocks']) {
                 const stkProfit = getLSItem('stockprofit');
                 if (stkProfit != 0) addHud("StockProfit", formatMoney(stkProfit)); 
             }
-
+            
             // Show total instantaneous script income and experience per second (values provided directly by the game)
             addHud("ScrInc", formatMoney(ns.getScriptIncome()[0], 3, 2) + '/sec', "Total 'instantenous' income per second being earned across all scripts running on all servers.");
             addHud("ScrExp", formatNumberShort(ns.getScriptExpGain(), 3, 2) + '/sec', "Total 'instantenous' hack experience per second being earned across all scripts running on all servers.");
