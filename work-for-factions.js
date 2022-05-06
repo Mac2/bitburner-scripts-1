@@ -2,6 +2,7 @@ import {
     instanceCount, getConfiguration, getNsDataThroughFile, getFilePath, getActiveSourceFiles, tryGetBitNodeMultipliers,
     formatDuration, formatMoney, formatNumberShort, disableLogs, log, getLSItem
 } from './helpers.js'
+import { getNumPortCrackers } from './daemon.js'
 
 let options;
 const argsSchema = [
@@ -40,11 +41,11 @@ const factions = ["Illuminati", "Daedalus", "The Covenant", "ECorp", "MegaCorp",
     "Volhaven", "Speakers for the Dead", "The Dark Army", "The Syndicate", "Silhouette", "Tetrads", "Slum Snakes", "Netburners", "Tian Di Hui", "CyberSec"]; //TODO: Add Bladeburner Automation at BN7.1
 const cannotWorkForFactions = ["Church of the Machine God", "Bladeburners"]
 // These factions should ideally be completed in this order (TODO: Check for augmentation dependencies)
-const preferredEarlyFactionOrder = [
-    "Sector-12","Tian Di Hui", "Aevum", // These give all the company_rep and faction_rep bonuses early game    
-    "CyberSec", /* Quick, and NightSec aug depends on an aug from here */ "NiteSec", "Tetrads", // Cha augs to speed up earning company promotions
-    "Netburners", // Improve hash income, which is useful or critical for almost all BNs
+const preferredEarlyFactionOrder = [    
+    "Sector-12","Tian Di Hui", /* No working penalty */ "Aevum", // These give all the company_rep and faction_rep bonuses early game 
     "Daedalus", // Once we have all faction_rep boosting augs, there's no reason not to work towards Daedalus as soon as it's available/feasible so we can buy Red Pill    
+    "CyberSec", /* Quick, and NightSec aug depends on an aug from here */ "NiteSec", "Tetrads", // Cha augs to speed up earning company promotions        
+    "Netburners", // Improve hash income, which is useful or critical for almost all BNs
     "Bachman & Associates", // Boost company/faction rep for future augs
     "Chongqing", // Unique Source of big 1.4x hack exp boost (Can only join if not in e.g. Aevum as well)
     "Fulcrum Secret Technologies", // Will be removed if hack level is too low to backdoor their server
@@ -168,6 +169,7 @@ async function loadStartupData(ns) {
     const allKnownFactions = factions.concat(playerInfo.factions.filter(f => !factions.includes(f)));
 
     // Get some faction and augmentation information to decide what remains to be purchased
+    // needs 22GB each
     dictFactionFavors = await getNsDataThroughFile(ns, dictCommand('ns.getFactionFavor(o)'), '/Temp/faction-favor.txt', allKnownFactions);
     const dictFactionAugs = await getNsDataThroughFile(ns, dictCommand('ns.getAugmentationsFromFaction(o)'), '/Temp/faction-augs.txt', allKnownFactions);
     const augmentationNames = [...new Set(Object.values(dictFactionAugs).flat())];
@@ -419,10 +421,16 @@ async function earnFactionInvite(ns, factionName) {
     // Study for hack levels if that's what's keeping us
     // Note: Check if we have insuffient hack to backdoor this faction server. If we have sufficient hack, we will "waitForInvite" below assuming an external script is backdooring ASAP 
     let serverReqHackingLevel = 0;
-    if (requirement = requiredBackdoorByFaction[factionName]) {
+    if (requirement = requiredBackdoorByFaction[factionName]) {        
         serverReqHackingLevel = await getServerRequiredHackLevel(ns, requirement);
         if (player.hacking < serverReqHackingLevel) {
             ns.print(`${reasonPrefix} you must first backdoor ${requirement}, which needs hack: ${serverReqHackingLevel}, Have: ${player.hacking}`);
+        }
+        // no need to train for this server, if we have not enough tools for it
+        serverReqPorts = await getServerNumPortsRequired(ns, requirement);
+        if (serverReqPorts > getNumPortCrackers()) {
+            // FIXME: doing crime to earn money for additional tools ?
+            return ns.print(`${reasonPrefix} you need ${serverReqPorts} hacked ports to successfully backdoor ${requirement} Have Tools: ${getNumPortCrackers()}`);
         }
     }
     requirement = Math.max(serverReqHackingLevel, requiredHackByFaction[factionName] || 0)
@@ -534,7 +542,7 @@ export async function crimeForKillsKarmaStats(ns, reqKills, reqKarma, reqStats, 
     let crime, lastCrime, lastStatusUpdateTime;
     while (forever || player.strength < reqStats || player.defense < reqStats || player.dexterity < reqStats || player.agility < reqStats || player.numPeopleKilled < reqKills || -ns.heart.break() < reqKarma) {
         if (!forever && breakToMainLoop()) return ns.print('INFO: Interrupting crime to check on high-level priorities.');
-        let crimeChances = await getNsDataThroughFile(ns, `Object.fromEntries(ns.args.map(c => [c, ns.getCrimeChance(c)]))`, '/Temp/crime-chances.txt', bestCrimesByDifficulty);
+        let crimeChances = await getNsDataThroughFile(ns, `Object.fromEntries(ns.args.map(c => [c, ns.getCrimeChance(c)]))`, '/Temp/crime-chances.txt', bestCrimesByDifficulty);    // 81GB!
         let needStats = player.strength < reqStats || player.defense < reqStats || player.dexterity < reqStats || player.agility < reqStats;
         let karma = -ns.heart.break();
         crime = crimeCount < 10 ? (crimeChances["homicide"] > 0.75 ? "homicide" : "mug") : // Start with a few fast & easy crimes to boost stats if we're just starting
@@ -657,6 +665,11 @@ async function getCurrentFactionFavour(ns, factionName) {
 /** @param {NS} ns */
 async function getServerRequiredHackLevel(ns, serverName) {
     return await getNsDataThroughFile(ns, `ns.getServerRequiredHackingLevel(ns.args[0])`, '/Temp/server-required-hacking-level.txt', [serverName]);
+}
+
+/** @param {NS} ns */
+async function getServerNumPortsRequired(ns, serverName) {
+    return await getNsDataThroughFile(ns, `ns.getServerNumPortsRequired(ns.args[0])`, '/Temp/server-required-port-number.txt', [serverName]);
 }
 
 /** A special check for when we unlock donations with Daedalus, this is usually a good time to reset. 

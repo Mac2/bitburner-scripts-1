@@ -146,7 +146,7 @@ class Report {
     )
     return str
   }
-
+  // FIXME: number of server is not correct. much to high. Threads?
   activitySummary() {
     let str = '\n\r This cycle:'
     const activity = Object.values(this.activity)
@@ -405,8 +405,8 @@ export async function main(ns) {
     const openTailWindows = !options['no-tail-windows'];
     asynchronousHelpers = [
         { name: "stats.js", shouldRun: () => ns.getServerMaxRam("home") >= 64 /* Don't waste precious RAM */ }, // Adds stats not usually in the HUD
-        { name: "stockmaster.js", args: openTailWindows ? ["--show-market-summary"] : [], tail: openTailWindows }, // Start our stockmaster
-        { name: "hacknet-upgrade-manager.js", args: ["-c", "--max-payoff-time", "1h"] }, // Kickstart hash income by buying everything with up to 1h payoff time immediately
+        { name: "stockmaster.js", shouldRun: () => ns.getServerMaxRam("home") > 32, args: openTailWindows ? ["--show-market-summary"] : [], tail: openTailWindows }, // Start our stockmaster
+        { name: "hacknet-upgrade-manager.js", shouldRun: () => ns.getServerMaxRam("home") > 32, args: ["-c", "--max-payoff-time", "1h"] }, // Kickstart hash income by buying everything with up to 1h payoff time immediately
         { name: "spend-hacknet-hashes.js", args: [], shouldRun: () => 9 in dictSourceFiles }, // Always have this running to make sure hashes aren't wasted
         { name: "sleeve.js", tail: openTailWindows, shouldRun: () => 10 in dictSourceFiles }, // Script to create manage our sleeves for us
         { name: "gangs.js", tail: openTailWindows, shouldRun: () => 2 in dictSourceFiles }, // Script to create manage our gang for us
@@ -424,7 +424,7 @@ export async function main(ns) {
     asynchronousHelpers.forEach(helper => helper.isLaunched = false);
     asynchronousHelpers.forEach(helper => helper.requiredServer = "home"); // All helpers should be launched at home since they use tempory scripts, and we only reserve ram on home
     // These scripts are spawned periodically (at some interval) to do their checks, with an optional condition that limits when they should be spawned
-    let shouldUpgradeHacknet = async () => (whichServerIsRunning(ns, "hacknet-upgrade-manager.js", false) === null) && await reservedMoney(ns) < ns.getServerMoneyAvailable("home") && ns.getServerMaxRam("home") >= 32;
+    let shouldUpgradeHacknet = async () => (whichServerIsRunning(ns, "hacknet-upgrade-manager.js", false) === null) && await reservedMoney(ns) < ns.getServerMoneyAvailable("home") && ns.getServerMaxRam("home") > 32;
     // In BN8 (stocks-only bn) and others with hack income disabled, don't waste money on improving hacking infrastructure unless we have plenty of money to spare
     let shouldImproveHacking = () => bitnodeMults.ScriptHackMoneyGain != 0 && playerStats.bitNodeN != 8 || ns.getServerMoneyAvailable("home") > 1e12;
     // Note: Periodic script are generally run every 30 seconds, but intervals are spaced out to ensure they aren't all bursting into temporary RAM at the same time.
@@ -1945,7 +1945,7 @@ function getTool(s) { return toolsByShortName[s] || toolsByShortName[s.shortName
 
 let ownedCracks = [];
 
-function getNumPortCrackers() {
+export function getNumPortCrackers() {
     // Once we own a port cracker, assume it won't be deleted.
     if (ownedCracks.length == 5) return 5;
     for (const crack of crackNames.filter(c => !ownedCracks.includes(c.name)))
